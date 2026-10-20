@@ -281,6 +281,22 @@ section('Keyboard');
     click('[data-act="close-modal"]'); await sleep(120);
     return '7 shortcuts';
   });
+  await check('the shell lays out sidebar beside main, not under it', async () => {
+    const rules = $$('style').map((s) => s.textContent).join('\n');
+    const shell = $('.app');
+    assert(shell.children.length === 3, 'unexpected shell children: ' + shell.children.length);
+    assert(/\.side-scrim\{display:none\}/.test(rules), 'the mobile scrim is not hidden on desktop');
+    const main = rules.match(/\.main\{[^}]*\}/)[0];
+    assert(/grid-column:2/.test(main) && /grid-row:1/.test(main), 'main is not pinned to the content column');
+    assert(/\.sidebar\{[^}]*grid-column:1/.test(rules), 'sidebar is not pinned to the nav column');
+    assert(/grid-template-columns:252px minmax\(0,1fr\)/.test(rules.match(/\.app\{[^}]*\}/)[0]), 'shell grid is wrong');
+    const unstyled = (rules.match(/grid-template-columns:1fr[;}]/g) || []).length;
+    assert(unstyled === 0, unstyled + ' grid(s) can still overflow a narrow viewport');
+    assert(/\.side-scrim\{display:block;position:fixed/.test(rules), 'the mobile drawer lost its scrim');
+    click('[data-nav="bills"]'); await sleep(250);
+    assert($('#view .table-wrap'), 'registry table missing');
+    return 'sidebar | main · 3 shell children';
+  });
   await check('in-place filters and pagers keep keyboard focus', async () => {
     const focused = (act, attr, val) => document.activeElement ===
       $(`[data-act="${act}"][${attr}="${val}"]`);

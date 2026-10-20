@@ -148,7 +148,7 @@ Open it directly in a browser, or run the dev server and visit `http://localhost
 npm run verify:portal
 ```
 
-Boots `public/mopa-portal.html` in jsdom and drives it like a user — sign-in and OTP, all fifteen views, sortable registry, command palette, every one of the fifteen reports (preview, CSV, print sheet), alert-rule settings, dataset reset, focus traps, an accessibility sweep over every view, cross-view number consistency, and all seven role scopes, plus the idle-session warning, filtered exports, transmission tracking, audit and table paging, keyboard focus across filters, pagers and the account menu, and the alert-chip invariants. 36 checks, exits non-zero on the first regression.
+Boots `public/mopa-portal.html` in jsdom and drives it like a user — sign-in and OTP, all fifteen views, sortable registry, command palette, every one of the fifteen reports (preview, CSV, print sheet), alert-rule settings, dataset reset, focus traps, an accessibility sweep over every view, cross-view number consistency, and all seven role scopes, plus the idle-session warning, filtered exports, transmission tracking, audit and table paging, keyboard focus across filters, pagers and the account menu, the shell layout, and the alert-chip invariants. 37 checks, exits non-zero on the first regression.
 
 ---
 
@@ -181,7 +181,7 @@ src/
 scripts/
 └─ verify-portal/                        # jsdom end-to-end pass over the single file
    ├─ lib.mjs                            # boot helper (Apex stub, stubs, captures)
-   └─ verify.mjs                         # 36 checks: views, a11y, reports, roles
+   └─ verify.mjs                         # 37 checks: views, a11y, layout, reports, roles
 ```
 
 ---
@@ -194,6 +194,8 @@ scripts/
 - Focus is trapped inside open modals and drawers, and restored to the page on close
 - Moving between views puts focus on the main region; filter chips, segmented controls and pagers keep focus where you left it, and every column header is scoped
 - The account menu is a real menu: arrow keys, Home/End and Escape work, focus lands on the first item and returns to the trigger, and every item is reachable by keyboard
+- The shell is a pinned two-column grid (`sidebar | main`); the mobile drawer scrim is desktop-hidden, so the workspace can never fall into a narrow second row
+- Every grid track uses `minmax(0,1fr)`, so cards shrink instead of pushing a horizontal scrollbar at 360–768 px
 - Charts expose an accessible text summary (`role="img"` with a generated label)
 - Live region announces view changes and table sorting to screen readers
 - `prefers-reduced-motion` disables all animation, including chart and KPI motion
