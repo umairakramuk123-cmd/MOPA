@@ -121,7 +121,7 @@ Node 20.9+ required. The dev server binds to `0.0.0.0` so it can be previewed th
 `public/mopa-portal.html` is the whole portal as **one self-contained HTML file** — no build step, no network calls:
 
 - Manrope embedded as a base64 WOFF2, ApexCharts 8 inlined, all CSS and JavaScript in the document
-- The same seven roles, permissions, seeded registry (54 bills, 215 documents), and sixteen views
+- The same seven roles, permissions, seeded registry (54 bills, 215 documents), and fifteen views
 - Animated login with role picker and OTP step, glass surfaces, green/blue gradients on white
 - Every text size between 13px and 16px; charts re-render per role and view
 - In-memory edits (register bill, stage update, OD, documents, stance, legal review, approvals, alerts)

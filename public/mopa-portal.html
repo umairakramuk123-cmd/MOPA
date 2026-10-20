@@ -3006,7 +3006,7 @@ function renderTopbar() {
   const r = role(), u = user();
   document.getElementById("topAvatar").textContent = u.initials || initials(u.name);
   document.getElementById("topName").textContent = u.name;
-  document.getElementById("topRole").textContent = r.short;
+  document.getElementById("topRole").textContent = r.scope === "ministry" && u && u.ministryId ? ministry(u.ministryId).short : r.short;
   document.getElementById("crumb").innerHTML = '<span>Workspace</span><span class="sep">/</span><b>' + esc(VIEW_META[state.view].label) + "</b>";
   document.getElementById("dateText").textContent = fmtDate(SYSTEM);
   const chip = document.getElementById("netChip");
@@ -3928,14 +3928,19 @@ function renderLoginRoles() {
   const host = document.getElementById("loginRoles");
   host.innerHTML = DATA.roleOrder.map((id) => {
     const r = DATA.roles[id];
+    const seat = state.users.find((x) => x.role === id);
+    const sub = r.scope === "ministry" && seat && seat.ministryId
+      ? ministry(seat.ministryId).short + " Division"
+      : r.org;
     return '<button type="button" class="role-tile ' + (state.loginRole === id ? "on" : "") + '" aria-pressed="' + (state.loginRole === id) + '" data-act="login-role" data-role="' + id + '">' +
       '<span class="ico">' + ic(ROLE_ICON[id] || "user", 14) + "</span>" +
-      "<span><b>" + esc(r.short) + "</b><span>" + esc(r.scope === "ministry" ? "Division user" : r.org) + "</span></span></button>";
+      "<span><b>" + esc(r.short) + "</b><span>" + esc(sub) + "</span></span></button>";
   }).join("");
   const u = state.users.find((x) => x.role === state.loginRole) || state.users[0];
   const r = DATA.roles[state.loginRole];
+  const who = r.scope === "ministry" && u && u.ministryId ? ministry(u.ministryId).name : r.name;
   document.getElementById("loginWho").innerHTML = ic("user", 13) +
-    "<span>Signing in as <b>" + esc(u.name) + "</b> · " + esc(r.name) + "</span>";
+    "<span>Signing in as <b>" + esc(u.name) + "</b> · " + esc(who) + "</span>";
 }
 function loginStep(n) {
   state.loginStep = n;
