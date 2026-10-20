@@ -2846,6 +2846,7 @@ function render() {
   destroyCharts();
   const meta = VIEW_META[state.view] || VIEW_META.dashboard;
   if (meta.permission && !can(meta.permission)) state.view = "dashboard";
+  if (state.entered) setHash(state.view, true);
   renderSidebar();
   renderTopbar();
   const host = document.getElementById("view");
@@ -2888,6 +2889,43 @@ function makeActionable() {
   });
 }
 
+function setHash(view, replace) {
+  try {
+    const target = "#" + view;
+    if ((location.hash || "") === target) return;
+    if (replace && history && history.replaceState) {
+      history.replaceState(null, "", target);
+      return;
+    }
+    location.hash = view;
+  } catch (e) {
+    try { location.hash = view; } catch (e2) {}
+  }
+}
+function readHash() {
+  return (location.hash || "").replace(/^#\/?/, "");
+}
+function canOpen(view) {
+  return !!VIEW_META[view] && !(VIEW_META[view].permission && !can(VIEW_META[view].permission));
+}
+window.addEventListener("hashchange", () => {
+  if (!state.entered) return;
+  const next = readHash();
+  if (!next || next === state.view) return;
+  if (!canOpen(next)) {
+    setHash(state.view, true);
+    if (VIEW_META[next]) toast("Restricted", "Your role cannot open " + VIEW_META[next].label + ".", "bad");
+    return;
+  }
+  state.view = next;
+  closeDrawer();
+  closeModal();
+  closeMenu();
+  closeSidebar();
+  render();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
 function go(view) {
   if (!VIEW_META[view]) return;
   if (VIEW_META[view].permission && !can(VIEW_META[view].permission)) {
@@ -2895,6 +2933,7 @@ function go(view) {
     return;
   }
   state.view = view;
+  setHash(view, false);
   closeDrawer();
   closeModal();
   closeMenu();
@@ -3545,7 +3584,9 @@ function enterPortal(roleId, viaSkip) {
   state.loginStep = 1;
   document.getElementById("login").classList.add("done");
   document.getElementById("app").hidden = false;
-  state.view = can("executive.view") ? "dashboard" : "dashboard";
+  state.view = "dashboard";
+  const deep = readHash();
+  if (deep && canOpen(deep)) state.view = deep;
   render();
   const r = role();
   toast(viaSkip ? "Preview mode" : "Signed in", "Workspace opened as " + r.short + ".", "good");
@@ -3560,6 +3601,10 @@ function signOut() {
   closeSidebar();
   document.getElementById("login").classList.remove("done");
   document.getElementById("app").hidden = true;
+  try {
+    if (history && history.replaceState) history.replaceState(null, "", location.pathname + location.search);
+    else location.hash = "";
+  } catch (e) {}
   state.view = "dashboard";
   state.loginStep = 1;
   loginStep(1);

@@ -106,7 +106,7 @@ npm run dev        # http://localhost:3000
 npm run build      # production build
 npm start          # serve the production build
 npm run typecheck  # tsc --noEmit
-npm run lint       # ESLint (next/core-web-vitals)
+npm run lint       # ESLint CLI (eslint-config-next / core-web-vitals)
 npm test           # Vitest domain suite (29 tests)
 ```
 
@@ -125,6 +125,8 @@ Node 20.9+ required. The dev server binds to `0.0.0.0` so it can be previewed th
 - Animated login with role picker and OTP step, glass surfaces, green/blue gradients on white
 - Every text size between 13px and 16px; charts re-render per role and view
 - In-memory edits (register bill, stage update, OD, documents, stance, legal review, approvals, alerts)
+- Deep-linkable views (`#bills`, `#committees`, `#documents` …) with browser back/forward, permission-checked on entry
+- Single file, no cookies, no storage: closing the tab discards the session
 
 Open it directly in a browser, or run the dev server and visit `http://localhost:3000/mopa-portal.html`.
 
