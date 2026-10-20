@@ -211,6 +211,43 @@ section('Registry');
     assert(cells.every((c) => c !== '—'), 'expected live deadlines first');
     return cells[0];
   });
+  await check('document and user tables sort too', async () => {
+    click('[data-nav="documents"]'); await sleep(280);
+    assert($$('[data-act="doc-sort"]').length === 7, 'documents lost its sortable headers');
+    click($('[data-act="doc-sort"][data-key="name"]')); await sleep(220);
+    assert($('[data-act="doc-sort"][data-key="name"]').closest('th').getAttribute('aria-sort') === 'ascending', 'document name sort');
+    click($('[data-act="doc-sort"][data-key="size"]')); await sleep(220);
+    const sizes = $$('#view tbody tr').map((r) => parseFloat(r.children[5].textContent));
+    assert(sizes.every((v, i) => i === 0 || sizes[i - 1] <= v), 'document size sort not ascending');
+    click('[data-nav="users"]'); await sleep(280);
+    assert($$('[data-act="user-sort"]').length === 6, 'users lost its sortable headers');
+    click($('[data-act="user-sort"][data-key="lastActive"]')); await sleep(250);
+    assert($('[data-act="user-sort"][data-key="lastActive"]').closest('th').getAttribute('aria-sort') === 'descending', 'user recency sort');
+    return 'docs 7 cols · users 6 cols';
+  });
+}
+
+/* --------------------------------------------------------------- shortcuts */
+section('Keyboard');
+{
+  const { $, $$, click, sleep, key, document } = ctx;
+  await check('? opens the shortcut sheet and never fires while typing', async () => {
+    click('[data-nav="bills"]'); await sleep(250);
+    ctx.key(document.body, '?'); await sleep(200);
+    assert($('#modal').classList.contains('on'), '? did not open the sheet');
+    assert($$('#modal .shortcut-row').length === 7, 'expected seven shortcuts');
+    ctx.key(document.activeElement, 'Escape'); await sleep(150);
+    assert(!$('#modal').classList.contains('on'), 'Escape did not close the sheet');
+    const input = $('[data-field="billQ"]');
+    input.focus();
+    ctx.key(input, '?'); await sleep(150);
+    assert(!$('#modal').classList.contains('on'), 'shortcut fired inside a text field');
+    click('[data-nav="help"]'); await sleep(250);
+    click('[data-act="show-shortcuts"]'); await sleep(200);
+    assert($('#modal').classList.contains('on'), 'help entry point broken');
+    click('[data-act="close-modal"]'); await sleep(120);
+    return '7 shortcuts';
+  });
 }
 
 /* --------------------------------------------------------------- palette */

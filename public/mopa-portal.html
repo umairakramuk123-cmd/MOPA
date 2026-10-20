@@ -997,6 +997,16 @@ table.tbl tbody tr:last-child td{border-bottom:0}
   clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
 
+/* ---------- shortcut sheet ---------- */
+.shortcut-list{display:flex;flex-direction:column;gap:2px}
+.shortcut-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 2px;
+  border-bottom:1px solid rgba(9,66,52,.07)}
+.shortcut-row:last-child{border-bottom:0}
+.shortcut-row b{display:block;font-size:var(--fs-13);font-weight:750;color:var(--ink)}
+.shortcut-row span{display:block;font-size:var(--fs-13);color:var(--muted);line-height:1.35}
+.shortcut-keys{display:flex;gap:4px;flex:none}
+.shortcut-keys .kbd{min-width:22px;text-align:center}
+
 /* ---------- skip link ---------- */
 .skip-link{position:fixed;top:-60px;left:12px;z-index:120;padding:9px 14px;border-radius:10px;
   background:var(--grad);color:#fff;font-size:var(--fs-13);font-weight:750;text-decoration:none;
@@ -1301,7 +1311,8 @@ function defaultFilters() {
   return {
     billQ: "", billType: "all", billStage: "all", billMinistry: "all", billPage: 0,
     billSort: "registeredAt", billDir: "desc",
-    docQ: "", docType: "all", docCls: "all", docPage: 0,
+    docQ: "", docType: "all", docCls: "all", docPage: 0, docSort: "uploaded", docDir: "desc",
+    userSort: "name", userDir: "asc",
     alertStatus: "open", auditAction: "all", auditQ: "",
     trackingType: "official", reportCat: "all", ministryQ: "",
   };
@@ -2036,6 +2047,51 @@ function billsPageRows() {
   const page = Math.min(state.filters.billPage, pages - 1);
   return { rows, pages, page, slice: rows.slice(page * per, page * per + per), per };
 }
+const SHORTCUTS = [
+  { keys: ["⌘K", "Ctrl K"], label: "Open the command palette", where: "Anywhere in the workspace" },
+  { keys: ["↑", "↓"], label: "Move through palette results", where: "Palette open" },
+  { keys: ["Enter"], label: "Open the highlighted result", where: "Palette open" },
+  { keys: ["Esc"], label: "Close the dialog, drawer or menu", where: "Any overlay" },
+  { keys: ["Tab"], label: "Cycle inside the open dialog", where: "Dialog open" },
+  { keys: ["Shift", "Tab"], label: "Cycle backwards", where: "Dialog open" },
+  { keys: ["?"], label: "Show this shortcut sheet", where: "Anywhere except a text field" },
+];
+function openShortcuts() {
+  openModal(
+    modalHead("Keyboard shortcuts", "Everything the workspace can do without a mouse.") +
+    '<div class="modal-body"><div class="shortcut-list">' +
+      SHORTCUTS.map((sc) =>
+        '<div class="shortcut-row"><div><b>' + esc(sc.label) + "</b><span>" + esc(sc.where) + "</span></div>" +
+        '<span class="shortcut-keys">' + sc.keys.map((k) => '<span class="kbd">' + esc(k) + "</span>").join("") + "</span></div>"
+      ).join("") +
+    "</div></div>" +
+    '<div class="modal-foot"><span class="meta" style="margin-right:auto">Shortcuts never fire while you are typing.</span>' +
+    '<button type="button" class="btn primary" data-act="close-modal">Got it</button></div>',
+    "sm"
+  );
+}
+function announce(text) {
+  const live = document.getElementById("srStatus");
+  if (live) live.textContent = text;
+}
+function sortHead(columns, sortKey, dir, act) {
+  return columns.map((c) => {
+    const active = sortKey === c.key;
+    const d = active ? dir : "";
+    return '<th scope="col" aria-sort="' + (active ? (d === "asc" ? "ascending" : "descending") : "none") + '">' +
+      '<button type="button" class="th-sort" data-act="' + act + '" data-key="' + c.key + '" title="Sort by ' + esc(c.label) + '">' +
+      esc(c.label) + '<span class="sort-ico" aria-hidden="true">' +
+      (active ? ic(d === "asc" ? "arrowUp" : "arrowDown", 11) : ic("sort", 11)) + "</span></button></th>";
+  }).join("");
+}
+function nextSort(current, dir, key, defaultDir) {
+  if (current === key) return { key, dir: dir === "asc" ? "desc" : "asc" };
+  return { key, dir: defaultDir || "asc" };
+}
+function focusSort(act, key) {
+  const btn = document.querySelector('[data-act="' + act + '"][data-key="' + key + '"]');
+  if (btn) btn.focus();
+}
 const BILL_COLUMNS = [
   { key: "title", label: "Bill record" }, { key: "type", label: "Type" },
   { key: "house", label: "House" }, { key: "ministry", label: "Division" },
@@ -2046,14 +2102,8 @@ function billsTableHtml() {
   const { slice } = billsPageRows();
   if (!slice.length) return emptyState("No bills match those filters", "Try a different type, stage or division.");
   return '<div class="table-wrap"><table class="tbl"><thead><tr>' +
-    BILL_COLUMNS.map((c) => {
-      const active = state.filters.billSort === c.key;
-      const dir = active ? state.filters.billDir : "";
-      return '<th scope="col" aria-sort="' + (active ? (dir === "asc" ? "ascending" : "descending") : "none") + '">' +
-        '<button type="button" class="th-sort" data-act="bill-sort" data-key="' + c.key + '" title="Sort by ' + esc(c.label) + '">' +
-        esc(c.label) + '<span class="sort-ico" aria-hidden="true">' +
-        (active ? ic(dir === "asc" ? "arrowUp" : "arrowDown", 11) : ic("sort", 11)) + "</span></button></th>";
-    }).join("") + "</tr></thead><tbody>" +
+    sortHead(BILL_COLUMNS, state.filters.billSort, state.filters.billDir, "bill-sort") +
+    "</tr></thead><tbody>" +
     slice.map((b) => {
       const pct = stageProgress(b);
       return '<tr data-act="open-bill" data-id="' + esc(b.id) + '">' +
@@ -2261,15 +2311,40 @@ function visibleDocuments() {
   return state.documents.filter((d) => ids.has(d.billId) &&
     (d.classification !== "classified" || can("documents.classified")));
 }
+const DOC_COLUMNS = [
+  { key: "name", label: "Document" }, { key: "bill", label: "Linked bill" },
+  { key: "type", label: "Type" }, { key: "classification", label: "Classification" },
+  { key: "version", label: "Version" }, { key: "size", label: "Size" },
+  { key: "uploaded", label: "Uploaded" },
+];
+const CLASS_RANK = { public: 0, restricted: 1, classified: 2 };
+function docSortValue(d, key) {
+  switch (key) {
+    case "bill": return d.billId;
+    case "type": return d.type.toLowerCase();
+    case "classification": return CLASS_RANK[d.classification] || 0;
+    case "version": return d.version;
+    case "size": return parseFloat(d.size) || 0;
+    case "uploaded": return Date.parse(d.uploadedAt) || 0;
+    default: return d.name.toLowerCase();
+  }
+}
 function docRows() {
   const f = state.filters;
   const q = f.docQ.trim().toLowerCase();
-  return visibleDocuments().filter((d) => {
+  const rows = visibleDocuments().filter((d) => {
     if (f.docType !== "all" && d.type !== f.docType) return false;
     if (f.docCls !== "all" && d.classification !== f.docCls) return false;
     if (!q) return true;
     return (d.name + " " + d.id + " " + d.type + " " + d.billId + " " + d.uploadedBy).toLowerCase().includes(q);
-  }).sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+  });
+  const key = f.docSort || "uploaded";
+  const dir = f.docDir === "asc" ? 1 : -1;
+  return rows.sort((a, b) => {
+    const x = docSortValue(a, key), y = docSortValue(b, key);
+    if (typeof x === "string") return x.localeCompare(y) * dir;
+    return (x - y) * dir;
+  });
 }
 function docPages() {
   const rows = docRows();
@@ -2280,7 +2355,8 @@ function docPages() {
 function docsTableHtml() {
   const { slice } = docPages();
   if (!slice.length) return emptyState("No documents match", "Try another type or classification.");
-  return '<div class="table-wrap"><table class="tbl"><thead><tr><th>Document</th><th>Linked bill</th><th>Type</th><th>Classification</th><th>Version</th><th>Size</th><th>Uploaded</th></tr></thead><tbody>' +
+  return '<div class="table-wrap"><table class="tbl"><thead><tr>' +
+    sortHead(DOC_COLUMNS, state.filters.docSort, state.filters.docDir, "doc-sort") + "</tr></thead><tbody>" +
     slice.map((d) => '<tr data-act="open-bill" data-id="' + esc(d.billId) + '">' +
       '<td><div class="bill-cell"><span class="bill-glyph">' + ic("folder", 14) + '</span><div><div class="bill-title">' + esc(d.name) + '</div><div class="bill-id">' + esc(d.id) + " · " + esc(d.uploadedBy) + "</div></div></div></td>" +
       '<td class="cell-strong nowrap">' + esc(d.billId) + "</td>" +
@@ -2666,8 +2742,33 @@ function mountApprovalCharts() {
 }
 
 /* ---------------- users ---------------- */
+const USER_COLUMNS = [
+  { key: "name", label: "User" }, { key: "role", label: "Role" },
+  { key: "division", label: "Division" }, { key: "status", label: "Status" },
+  { key: "mfa", label: "MFA" }, { key: "lastActive", label: "Last active" },
+];
+function userSortValue(u, key) {
+  switch (key) {
+    case "role": return (DATA.roles[u.role] ? DATA.roles[u.role].short : u.role).toLowerCase();
+    case "division": return (u.ministryId ? ministry(u.ministryId).short : "MoPA").toLowerCase();
+    case "status": return u.status === "active" ? 0 : u.status === "invited" ? 1 : 2;
+    case "mfa": return u.mfa ? 0 : 1;
+    case "lastActive": return Date.parse(u.lastActive) || 0;
+    default: return u.name.toLowerCase();
+  }
+}
+function sortedUsers() {
+  const key = state.filters.userSort || "name";
+  const dir = state.filters.userDir === "asc" ? 1 : -1;
+  return state.users.slice().sort((a, b) => {
+    const x = userSortValue(a, key), y = userSortValue(b, key);
+    if (typeof x === "string") return x.localeCompare(y) * dir;
+    return (x - y) * dir;
+  });
+}
 function viewUsers() {
   const users = state.users;
+  const orderedUsers = sortedUsers();
   const active = users.filter((u) => u.status === "active").length;
   const mfa = users.filter((u) => u.mfa).length;
   const roles = DATA.roleOrder.map((id) => ({
@@ -2689,8 +2790,9 @@ function viewUsers() {
     "</div>" +
     '<div class="grid g12">' +
       '<section class="card c8 table-card" style="padding:0">' +
-        '<div class="table-wrap"><table class="tbl"><thead><tr><th>User</th><th>Role</th><th>Division</th><th>Status</th><th>MFA</th><th>Last active</th></tr></thead><tbody>' +
-        users.map((u) => '<tr data-act="user-detail" data-id="' + esc(u.id) + '">' +
+        '<div class="table-wrap"><table class="tbl"><thead><tr>' +
+        sortHead(USER_COLUMNS, state.filters.userSort, state.filters.userDir, "user-sort") + "</tr></thead><tbody>" +
+        orderedUsers.map((u) => '<tr data-act="user-detail" data-id="' + esc(u.id) + '">' +
           '<td><div class="bill-cell"><span class="avatar" style="width:28px;height:28px;border-radius:8px">' + esc(u.initials || initials(u.name)) + '</span><div><div class="bill-title">' + esc(u.name) + '</div><div class="bill-id">' + esc(u.email) + "</div></div></div></td>" +
           '<td><span class="badge b-slate">' + esc(DATA.roles[u.role] ? DATA.roles[u.role].short : u.role) + "</span></td>" +
           '<td class="cell-muted">' + esc(u.ministryId ? ministry(u.ministryId).short : "MoPA") + "</td>" +
@@ -2880,7 +2982,8 @@ function viewHelp() {
       eyebrow: "Support",
       title: "Help & glossary",
       sub: "The short version of the legislative process, keyboard shortcuts and answers to the questions branches ask most.",
-      actions: '<button class="btn ghost" data-act="export-glossary">' + ic("download", 14) + " Download glossary</button>",
+      actions: '<button class="btn ghost" data-act="show-shortcuts">' + ic("sparkle", 14) + " Keyboard shortcuts</button>" +
+        '<button class="btn ghost" data-act="export-glossary">' + ic("download", 14) + " Download glossary</button>",
     }) +
     '<div class="grid g12">' +
       '<section class="card c7">' +
@@ -4129,11 +4232,34 @@ function actionFrom(el) {
       }
       state.filters.billPage = 0;
       refreshBills();
-      const live = document.getElementById("srStatus");
-      if (live) live.textContent = "Sorted by " + col.label + ", " + (state.filters.billDir === "asc" ? "ascending" : "descending") + ".";
+      announce("Sorted by " + col.label + ", " + (state.filters.billDir === "asc" ? "ascending" : "descending") + ".");
+      focusSort("bill-sort", key);
       return true;
     }
     case "doc-page": state.filters.docPage = Math.max(0, parseInt(target.getAttribute("data-page"), 10) || 0); refreshDocs(); return true;
+    case "doc-sort": {
+      const key = target.getAttribute("data-key");
+      const col = DOC_COLUMNS.find((c) => c.key === key);
+      if (!col) return true;
+      const next = nextSort(state.filters.docSort, state.filters.docDir, key, key === "uploaded" ? "desc" : "asc");
+      state.filters.docSort = next.key; state.filters.docDir = next.dir;
+      state.filters.docPage = 0;
+      refreshDocs();
+      announce("Sorted by " + col.label + ", " + (next.dir === "asc" ? "ascending" : "descending") + ".");
+      focusSort("doc-sort", key);
+      return true;
+    }
+    case "user-sort": {
+      const key = target.getAttribute("data-key");
+      const col = USER_COLUMNS.find((c) => c.key === key);
+      if (!col) return true;
+      const next = nextSort(state.filters.userSort, state.filters.userDir, key, key === "lastActive" ? "desc" : "asc");
+      state.filters.userSort = next.key; state.filters.userDir = next.dir;
+      render();
+      announce("Sorted by " + col.label + ", " + (next.dir === "asc" ? "ascending" : "descending") + ".");
+      focusSort("user-sort", key);
+      return true;
+    }
     case "reset-bills": state.filters.billQ = ""; state.filters.billType = "all"; state.filters.billStage = "all"; state.filters.billMinistry = "all"; state.filters.billPage = 0; state.filters.billSort = "registeredAt"; state.filters.billDir = "desc"; render(); return true;
     case "ministry-bills": {
       const mid = target.getAttribute("data-id");
@@ -4164,6 +4290,7 @@ function actionFrom(el) {
     case "reset-demo": openResetModal(); return true;
     case "reset-demo-confirm": resetWorkspace(); return true;
     case "save-settings": logAudit("Alert rule updated", "Settings", "workspace", "Configuration saved."); toast("Settings saved", "Alert rules and security posture updated.", "good"); return true;
+    case "show-shortcuts": openShortcuts(); return true;
     case "accordion": {
       const acc = target.closest(".accordion");
       if (acc) acc.classList.toggle("open");
@@ -4302,6 +4429,11 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     if (!document.getElementById("app").hidden) document.getElementById("globalSearch").focus();
     return;
+  }
+  if (e.key === "?" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    const tag = (e.target && e.target.tagName) || "";
+    const typing = /INPUT|TEXTAREA|SELECT/.test(tag) || (e.target && e.target.isContentEditable);
+    if (!typing && !document.getElementById("app").hidden) { e.preventDefault(); openShortcuts(); return; }
   }
   if (e.key === "Escape") {
     const modalOpen = document.getElementById("modal").classList.contains("on");

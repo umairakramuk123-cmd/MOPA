@@ -127,7 +127,9 @@ Node 20.9+ required. The dev server binds to `0.0.0.0` so it can be previewed th
 - Every text size between 13px and 16px; charts re-render per role and view
 - In-memory edits (register bill, stage update, OD, documents, stance, legal review, approvals, alerts)
 - Deep-linkable views (`#bills`, `#committees`, `#documents` …) with browser back/forward, permission-checked on entry
-- Sortable registry (seven columns, `aria-sort` announced) and in-place division search that keeps focus
+- Sortable tables — registry (7), documents (7), users (6) — with `aria-sort`, announcements and focus retained
+- In-place division search that keeps keyboard focus
+- Shortcut sheet on `?` (also in Help), listing every real binding
 - Command palette on `⌘K` across bills, documents, divisions, reports and pages, with arrow-key navigation
 - All fifteen statutory reports open a live preview built from the current records, exportable as CSV or via print/PDF
 - Settings that actually apply: alert rules mute notifications everywhere, compact density, OTP on/off, idle logout, IP-range chip
@@ -142,7 +144,7 @@ Open it directly in a browser, or run the dev server and visit `http://localhost
 npm run verify:portal
 ```
 
-Boots `public/mopa-portal.html` in jsdom and drives it like a user — sign-in and OTP, all fifteen views, sortable registry, command palette, every one of the fifteen reports (preview, CSV, print sheet), alert-rule settings, dataset reset, focus traps, an accessibility sweep over every view, cross-view number consistency, and all seven role scopes. 25 checks, exits non-zero on the first regression.
+Boots `public/mopa-portal.html` in jsdom and drives it like a user — sign-in and OTP, all fifteen views, sortable registry, command palette, every one of the fifteen reports (preview, CSV, print sheet), alert-rule settings, dataset reset, focus traps, an accessibility sweep over every view, cross-view number consistency, and all seven role scopes. 27 checks, exits non-zero on the first regression.
 
 ---
 
@@ -184,7 +186,7 @@ scripts/
 
 - Semantic landmarks, skip link, labelled controls, `aria-current` navigation
 - Visible focus rings on every interactive element
-- Keyboard: `⌘K` palette with arrow/enter navigation, `Esc` to close overlays, paste support in OTP
+- Keyboard: `⌘K` palette with arrow/enter navigation, `?` shortcut sheet, `Esc` to close overlays, paste support in OTP
 - Focus is trapped inside open modals and drawers, and restored to the page on close
 - Charts expose an accessible text summary (`role="img"` with a generated label)
 - Live region announces view changes and table sorting to screen readers
