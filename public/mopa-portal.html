@@ -3017,6 +3017,8 @@ function renderTopbar() {
   const menuHost = document.getElementById("userWrap");
   const existing = document.getElementById("roleMenu");
   if (existing) existing.remove();
+  const userBtn = document.getElementById("userBtn");
+  if (userBtn) userBtn.setAttribute("aria-expanded", state.menu ? "true" : "false");
   if (state.menu) {
     const menu = document.createElement("div");
     menu.className = "menu";
@@ -3142,10 +3144,14 @@ function closeMenu() {
     const m = document.getElementById("roleMenu");
     if (m) m.remove();
   }
+  const btn = document.getElementById("userBtn");
+  if (btn) btn.setAttribute("aria-expanded", "false");
 }
 function toggleMenu() {
   state.menu = !state.menu;
   renderTopbar();
+  const btn = document.getElementById("userBtn");
+  if (btn) btn.setAttribute("aria-expanded", state.menu ? "true" : "false");
 }
 function closeSidebar() {
   document.getElementById("sidebar").classList.remove("open");
@@ -3271,7 +3277,9 @@ function renderDrawer() {
 }
 
 /* ---------------- modal ---------------- */
+let modalReturnFocus = null;
 function openModal(html, cls) {
+  modalReturnFocus = document.activeElement;
   const m = document.getElementById("modal");
   m.className = "modal on " + (cls || "");
   document.body.style.overflow = "hidden";
@@ -3285,6 +3293,14 @@ function closeModal() {
   const m = document.getElementById("modal");
   m.classList.remove("on");
   m.innerHTML = "";
+  const back = modalReturnFocus;
+  modalReturnFocus = null;
+  if (back && typeof back.focus === "function") {
+    setTimeout(() => {
+      if (!document.contains(back)) return;
+      try { back.focus({ preventScroll: true }); } catch (e) {}
+    }, 0);
+  }
   if (!document.getElementById("drawer").classList.contains("on")) document.body.style.overflow = "";
   if (!document.getElementById("drawer").classList.contains("on")) {
     document.getElementById("scrim").classList.remove("on");
