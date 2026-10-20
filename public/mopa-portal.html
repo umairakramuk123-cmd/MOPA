@@ -303,7 +303,7 @@ button:focus:not(:focus-visible){outline:none}
   margin-bottom:5px;
 }
 .eyebrow.blue{color:var(--blue)}
-.page-title{font-size:var(--fs-16);font-weight:800;letter-spacing:-.03em;line-height:1.3;margin:0}
+.page-title{font-size:var(--fs-16);font-weight:800;letter-spacing:-.03em;line-height:1.3;margin:0;text-wrap:balance}
 .page-sub{font-size:var(--fs-13);color:var(--muted);margin-top:3px;max-width:70ch;line-height:1.55}
 .page-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .grid{display:grid;gap:13px}
@@ -468,6 +468,7 @@ select.input{
 .table-tools .grow{flex:1;min-width:160px}
 .table-wrap{overflow:auto}
 table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:var(--fs-13)}
+.table-wrap{overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
 table.tbl th{
   text-align:left;font-size:var(--fs-13);font-weight:750;letter-spacing:.08em;text-transform:uppercase;
   color:var(--muted);padding:9px 11px;border-bottom:1px solid var(--line);white-space:nowrap;
@@ -4051,20 +4052,38 @@ function download(filename, content, mime) {
 function csv(rows) {
   return rows.map((r) => r.map((c) => '"' + String(c == null ? "" : c).replace(/"/g, '""') + '"').join(",")).join("\r\n");
 }
+function activeBillFilters() {
+  const f = state.filters;
+  const bits = [];
+  if (f.billQ.trim()) bits.push("search “" + f.billQ.trim() + "”");
+  if (f.billType !== "all") bits.push(TYPE_LABEL[f.billType]);
+  if (f.billStage !== "all") bits.push(stageMeta(f.billStage).label);
+  if (f.billMinistry !== "all") bits.push(ministry(f.billMinistry).short);
+  return bits;
+}
 function exportBills() {
   const rows = [["Bill ID", "Title", "Type", "House", "Division", "Member in charge", "Stage", "Outcome", "Registered"]];
-  scopedBills().forEach((b) => rows.push([
+  const list = filteredBills();
+  list.forEach((b) => rows.push([
     b.id, b.title, TYPE_LABEL[b.type], b.house, ministry(b.ministryId).name,
     b.memberInCharge, stageMeta(b.stage).label, b.outcome, fmtDate(b.registeredAt),
   ]));
   download("mopa-bills-registry.csv", csv(rows));
-  toast("Registry exported", scopedBills().length + " bills written to CSV.", "good");
+  const filters = activeBillFilters();
+  logAudit("Registry exported", "Bill", "registry", list.length + " bills" + (filters.length ? " · filtered by " + filters.join(", ") : "") + ".");
+  toast("Registry exported",
+    list.length + (filters.length ? " filtered" : "") + " bills written to CSV" +
+    (filters.length ? " · " + filters.join(", ") : "") + ".",
+    "good");
 }
 function exportDocs() {
   const rows = [["Document ID", "Name", "Type", "Bill", "Classification", "Version", "Size", "Uploaded"]];
-  visibleDocuments().forEach((d) => rows.push([d.id, d.name, d.type, d.billId, d.classification, "v" + d.version, d.size, fmtDate(d.uploadedAt)]));
+  const list = docRows();
+  list.forEach((d) => rows.push([d.id, d.name, d.type, d.billId, d.classification, "v" + d.version, d.size, fmtDate(d.uploadedAt)]));
   download("mopa-document-index.csv", csv(rows));
-  toast("Index exported", visibleDocuments().length + " documents written to CSV.", "good");
+  const f = state.filters;
+  const filtered = !!f.docQ.trim() || f.docType !== "all" || f.docCls !== "all";
+  toast("Index exported", list.length + (filtered ? " filtered" : "") + " documents written to CSV.", "good");
 }
 function exportAudit() {
   if (!can("audit.view")) { toast("Restricted", "Your role cannot export the audit trail.", "bad"); return; }

@@ -211,6 +211,25 @@ section('Registry');
     assert(cells.every((c) => c !== '—'), 'expected live deadlines first');
     return cells[0];
   });
+  await check('CSV export follows the current filters', async () => {
+    const blobs = [];
+    const read = (b) => new Promise((res, rej) => {
+      const fr = new ctx.window.FileReader();
+      fr.onload = () => res(String(fr.result));
+      fr.onerror = () => rej(new Error('read failed'));
+      fr.readAsText(b);
+    });
+    ctx.window.URL.createObjectURL = (b) => { blobs.push(b); return 'blob:x'; };
+    click('[data-nav="bills"]'); await sleep(280);
+    type('[data-field="billQ"]', 'finance'); await sleep(280);
+    const shown = $$('#bills-table tbody tr').length;
+    click('[data-act="export-bills"]'); await sleep(250);
+    const rows = (await read(blobs[blobs.length - 1])).trim().split('\r\n').length - 1;
+    assert(rows === shown, `exported ${rows} rows but the table shows ${shown}`);
+    assert($$('#toasts .toast').pop().textContent.includes('filtered'), 'filtered export is not labelled');
+    click('[data-act="reset-bills"]'); await sleep(200);
+    return rows + ' filtered rows';
+  });
   await check('document and user tables sort too', async () => {
     click('[data-nav="documents"]'); await sleep(280);
     assert($$('[data-act="doc-sort"]').length === 7, 'documents lost its sortable headers');
