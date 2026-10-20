@@ -350,6 +350,32 @@ section('Settings');
   });
 }
 
+/* ------------------------------------------------------------ idle session */
+section('Session');
+{
+  const { $, $$, click, sleep } = ctx;
+  await check('idle warning counts down, extends, and signs out', async () => {
+    // already signed in from the settings section
+    const banner = $('#sessionWarn');
+    assert(banner.hidden, 'banner visible before the warning');
+    ctx.window.showIdleWarning();
+    await sleep(120);
+    assert(!banner.hidden, 'warning did not appear');
+    const first = parseInt($('#sessionCount').textContent, 10);
+    await sleep(1150);
+    const second = parseInt($('#sessionCount').textContent, 10);
+    assert(second < first, 'countdown did not tick');
+    click('[data-act="stay-signed-in"]'); await sleep(180);
+    assert(banner.hidden, 'extend did not dismiss the warning');
+    assert($$('#toasts .toast').pop().textContent.includes('Session extended'), 'no extension confirmation');
+    ctx.window.showIdleWarning(); await sleep(100);
+    click($('#sessionWarn [data-act="signout"]')); await sleep(320);
+    assert(!$('#login').classList.contains('done'), 'sign out from the banner failed');
+    assert(banner.hidden, 'banner survived sign out');
+    return 'tick, extend, sign out';
+  });
+}
+
 /* ---------------------------------------------------------- consistency */
 section('Number consistency');
 {

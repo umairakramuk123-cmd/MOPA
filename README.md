@@ -134,6 +134,7 @@ Node 20.9+ required. The dev server binds to `0.0.0.0` so it can be previewed th
 - All fifteen statutory reports open a live preview built from the current records, exportable as CSV or via print/PDF
 - Settings that actually apply: alert rules mute notifications everywhere, compact density, OTP on/off, idle logout, IP-range chip
 - Session reset from Settings restores the seeded dataset without signing out
+- Idle sessions warn 60 seconds ahead, with a countdown and a one-click stay-signed-in
 - Single file, no cookies, no storage: closing the tab discards the session
 
 Open it directly in a browser, or run the dev server and visit `http://localhost:3000/mopa-portal.html`.
@@ -144,7 +145,7 @@ Open it directly in a browser, or run the dev server and visit `http://localhost
 npm run verify:portal
 ```
 
-Boots `public/mopa-portal.html` in jsdom and drives it like a user — sign-in and OTP, all fifteen views, sortable registry, command palette, every one of the fifteen reports (preview, CSV, print sheet), alert-rule settings, dataset reset, focus traps, an accessibility sweep over every view, cross-view number consistency, and all seven role scopes. 27 checks, exits non-zero on the first regression.
+Boots `public/mopa-portal.html` in jsdom and drives it like a user — sign-in and OTP, all fifteen views, sortable registry, command palette, every one of the fifteen reports (preview, CSV, print sheet), alert-rule settings, dataset reset, focus traps, an accessibility sweep over every view, cross-view number consistency, and all seven role scopes, plus the idle-session warning. 28 checks, exits non-zero on the first regression.
 
 ---
 
