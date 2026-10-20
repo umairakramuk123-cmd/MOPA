@@ -294,7 +294,7 @@ button:focus:not(:focus-visible){outline:none}
 .sr-item .sr-tag{margin-left:auto;font-size:var(--fs-13);color:var(--muted-2);white-space:nowrap}
 
 /* ---------- page ---------- */
-.page{display:flex;flex-direction:column;gap:13px;animation:rise .38s cubic-bezier(.22,1,.36,1) both;max-width:1440px;width:100%;margin:0 auto}
+.page{display:flex;flex-direction:column;gap:13px;opacity:1;animation:rise .38s cubic-bezier(.22,1,.36,1);max-width:1440px;width:100%;margin:0 auto}
 @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:2px 2px 0}
 .eyebrow{
@@ -956,6 +956,7 @@ table.tbl tbody tr:last-child td{border-bottom:0}
 }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+  .page,.login-card,.session-warn{animation:none!important;opacity:1!important;transform:none!important}
 }
 
 
@@ -1093,6 +1094,7 @@ body.density-compact .card-head{padding-bottom:8px}
 <div class="blob c"></div>
 
 <!-- ================= LOGIN ================= -->
+<noscript><div style="position:relative;z-index:200;padding:12px 16px;background:#7f1d1d;color:#fff;font-family:Manrope,sans-serif;font-size:14px">This portal needs JavaScript. Enable it for this page and reload.</div></noscript>
 <div class="login" id="login">
   <div class="login-inner">
     <section class="login-art" aria-hidden="false">
@@ -1290,7 +1292,7 @@ body.density-compact .card-head{padding-bottom:8px}
 
       <footer style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:2px 4px;font-size:13px;color:var(--muted-2)">
         <span>© 2026 Ministry of Parliamentary Affairs · Data classification: Restricted</span>
-        <span>Single-file edition · ApexCharts · Manrope</span>
+        <span>Single-file edition · ApexCharts · Manrope · build 2026-10-20</span>
       </footer>
     </div>
   </div>
@@ -3276,15 +3278,25 @@ function renderTopbar() {
 function render() {
   destroyCharts();
   document.body.classList.toggle("density-compact", !!state.settings.compact);
-  const meta = VIEW_META[state.view] || VIEW_META.dashboard;
-  if (meta.permission && !can(meta.permission)) state.view = "dashboard";
-  if (state.entered) setHash(state.view, true);
-  renderSidebar();
-  renderTopbar();
+  if (!VIEW_META[state.view]) state.view = "dashboard";
+  if (VIEW_META[state.view].permission && !can(VIEW_META[state.view].permission)) state.view = "dashboard";
   const host = document.getElementById("view");
-  host.innerHTML = (VIEW_META[state.view].render)();
+  let body = "";
+  try {
+    body = VIEW_META[state.view].render();
+  } catch (err) {
+    console.error("View render failed:", err);
+    body = renderFailure(err && err.message ? err.message : String(err));
+  }
+  if (host) {
+    host.innerHTML = body;
+    if (!host.firstElementChild) host.innerHTML = renderFailure("The view returned no content.");
+  }
+  try { if (state.entered) setHash(state.view, true); } catch (e) {}
+  try { renderSidebar(); } catch (err) { console.error("Sidebar render failed:", err); }
+  try { renderTopbar(); } catch (err) { console.error("Topbar render failed:", err); }
   const mount = VIEW_META[state.view].mount;
-  if (mount) mount();
+  if (mount) { try { mount(); } catch (err) { console.error("Chart mount failed:", err); } }
   document.getElementById("searchPop").hidden = true;
   makeActionable();
   animateKpis();
@@ -3292,6 +3304,11 @@ function render() {
   if (live && state.entered) live.textContent = VIEW_META[state.view].label + " opened.";
 }
 
+function renderFailure(message) {
+  return '<div class="page"><div class="card render-error"><div class="card-head"><div><div class="card-title">This view could not be drawn</div>' +
+    '<div class="card-sub">' + esc(message || "Unknown error") + "</div></div></div>" +
+    '<div class="banner"><span class="ic">' + ic("alert", 14) + '</span><span>Reload the page to try again. If it keeps happening, send this message to the administrator.</span></div></div></div>';
+}
 function animateKpis() {
   const nodes = [...document.querySelectorAll("#view [data-count]")];
   if (!nodes.length) return;
@@ -4575,6 +4592,16 @@ function actionFrom(el) {
     default: return false;
   }
 }
+
+function showRenderFailure(message) {
+  try {
+    const host = document.getElementById("view");
+    if (!state.entered || !host || host.firstElementChild) return;
+    host.innerHTML = renderFailure(message);
+  } catch (e) {}
+}
+window.addEventListener("error", (event) => showRenderFailure(event.message || "Unknown script error"));
+window.addEventListener("unhandledrejection", (event) => showRenderFailure(String((event.reason && event.reason.message) || event.reason || "Unhandled promise rejection")));
 
 document.addEventListener("click", (e) => {
   const navEl = e.target.closest("[data-nav]");
