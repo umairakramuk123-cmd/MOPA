@@ -177,6 +177,7 @@ src/
 - Live region announces view changes and table sorting to screen readers
 - `prefers-reduced-motion` disables all animation, including chart and KPI motion
 - Colour is never the only signal — badges carry text and icons
+- Every white-on-colour surface (KPI cards, brand gradient, nav, chips, icon tiles) clears WCAG AA at 4.5:1
 - Print stylesheet produces a clean legislative brief (chrome hidden, cards unshadowed)
 - TypeScript strict, zero unused code, production build verified
 - Animated KPI counters respect `prefers-reduced-motion`
