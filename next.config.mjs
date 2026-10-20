@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Allow the proxied preview host to request dev assets without a cross-origin rejection.
+  allowedDevOrigins: ["*.e2b.app", "*.arena.ai"],
   poweredByHeader: false,
   experimental: {
     optimizePackageImports: ["lucide-react", "recharts"],

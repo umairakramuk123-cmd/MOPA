@@ -521,3 +521,85 @@ export function ChartActions({ onExport }: { onExport?: () => void }) {
     </button>
   );
 }
+
+/* ------------------------------ Heatmap ---------------------------------- */
+export function DivisionHeatmap({
+  rows,
+  columns,
+  className,
+}: {
+  rows: { id: string; short: string; cells: number[]; total: number }[];
+  columns: string[];
+  className?: string;
+}) {
+  const max = Math.max(1, ...rows.flatMap((r) => r.cells));
+  const tint = (v: number) => {
+    if (v === 0) return "var(--surface-2)";
+    const intensity = 16 + Math.round((v / max) * 78);
+    return `color-mix(in oklab, var(--brand) ${intensity}%, var(--surface-2))`;
+  };
+
+  return (
+    <Card className={cn("overflow-hidden", className)}>
+      <CardHeader
+        eyebrow="Density"
+        title="Division × milestone"
+        subtitle="Where legislative work is concentrated across the session."
+        actions={
+          <div className="flex items-center gap-1.5">
+            <span className="font-mono text-[8.5px] uppercase tracking-[0.1em] text-faint">low</span>
+            {[16, 38, 60, 82, 94].map((v) => (
+              <span
+                key={v}
+                className="h-2.5 w-3.5 rounded-[2px]"
+                style={{ background: `color-mix(in oklab, var(--brand) ${v}%, var(--surface-2))` }}
+              />
+            ))}
+            <span className="font-mono text-[8.5px] uppercase tracking-[0.1em] text-faint">high</span>
+          </div>
+        }
+      />
+      <div className="scroll-thin overflow-x-auto p-4">
+        <div className="min-w-[560px]">
+          <div
+            className="grid gap-1"
+            style={{ gridTemplateColumns: `132px repeat(${columns.length}, minmax(0, 1fr))` }}
+          >
+            <div />
+            {columns.map((c) => (
+              <div key={c} className="pb-1 text-center font-mono text-[8px] uppercase tracking-[0.08em] text-faint">
+                {c}
+              </div>
+            ))}
+          </div>
+          {rows.map((row) => (
+            <div
+              key={row.id}
+              className="grid items-center gap-1 py-[2px]"
+              style={{ gridTemplateColumns: `132px repeat(${columns.length}, minmax(0, 1fr))` }}
+            >
+              <div className="flex items-center gap-1.5 pr-2">
+                <span className="truncate text-[10px] text-ink-2">{row.short}</span>
+                <span className="num ml-auto shrink-0 font-mono text-[8.5px] text-faint">{row.total}</span>
+              </div>
+              {row.cells.map((v, i) => (
+                <span
+                  key={i}
+                  title={`${row.short} · ${columns[i]}: ${v} bill${v === 1 ? "" : "s"}`}
+                  className="flex h-7 w-full items-center justify-center rounded-[4px] border border-line/50 text-[9.5px] font-medium transition-transform hover:scale-[1.04]"
+                  style={{
+                    background: tint(v),
+                    color: v / max > 0.55 ? "var(--surface)" : v === 0 ? "var(--faint)" : "var(--ink-2)",
+                  }}
+                  aria-label={`${row.short}, ${columns[i]}: ${v} bills`}
+                >
+                  {v || ""}
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </Card>
+  );
+}

@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/primitives";
 import { StatStrip } from "@/components/kpi";
 import { Drawer } from "@/components/ui/overlay";
-import { MinistryBars } from "@/components/charts";
+import { DivisionHeatmap, MinistryBars } from "@/components/charts";
 import {
   ArrowRight,
   Building2,
@@ -48,6 +48,25 @@ export function MinistriesView() {
 
   const pending = stats.reduce((s, m) => s + m.pendingResponses, 0);
   const overdue = stats.reduce((s, m) => s + m.overdue, 0);
+
+  const BUCKETS: { label: string; stages: string[] }[] = [
+    { label: "Pre / OD", stages: ["pre-introduction", "pre-admissibility", "admitted", "order-of-the-day", "introduced", "js-reference", "js-od"] },
+    { label: "Committee", stages: ["standing-committee", "other-house-committee", "js-committee", "joint-committee"] },
+    { label: "Report", stages: ["report-presented", "js-report", "joint-report"] },
+    { label: "Passage", stages: ["consideration", "js-consideration", "js-decision", "other-house", "transmitted", "returned"] },
+    { label: "Assent", stages: ["assent", "president"] },
+    { label: "Notified", stages: ["gazette"] },
+  ];
+
+  const heatRows = stats.slice(0, 8).map((m) => {
+    const own = bills.filter((b) => b.ministryId === m.id);
+    return {
+      id: m.id,
+      short: m.short,
+      total: own.length,
+      cells: BUCKETS.map((bucket) => own.filter((b) => bucket.stages.includes(b.stage)).length),
+    };
+  });
 
   return (
     <div className="space-y-4">
@@ -180,6 +199,8 @@ export function MinistriesView() {
           </Card>
         </div>
       </div>
+
+      <DivisionHeatmap rows={heatRows} columns={BUCKETS.map((b) => b.label)} />
 
       <MinistryDrawer ministry={selected} onClose={() => setSelected(null)} />
     </div>
