@@ -1426,9 +1426,15 @@ function stageProgress(bill) {
 }
 function stageAge(bill) { return Math.max(0, daysBetween(bill.stageEnteredAt)); }
 function billAge(bill) { return Math.max(0, daysBetween(bill.registeredAt)); }
+/* A committee clock only runs while the bill sits in a committee stage.
+   Historical bills keep their old date, so every view reads it through here. */
+function activeCommitteeDue(bill) {
+  return isCommitteeStage(bill) ? bill.committeeDueAt || null : null;
+}
 function deadlineState(bill) {
-  if (!bill.committeeDueAt) return "none";
-  const delta = daysBetween(SYSTEM, bill.committeeDueAt);
+  const due = activeCommitteeDue(bill);
+  if (!due) return "none";
+  const delta = daysBetween(SYSTEM, due);
   if (delta < 0) return "overdue";
   if (delta <= 7) return "due-soon";
   return "on-track";
@@ -1710,7 +1716,7 @@ function stageBadge(bill) {
 function deadlineBadge(bill) {
   const st = deadlineState(bill);
   if (st === "none") return '<span class="muted">—</span>';
-  const label = deadlineLabel(bill.committeeDueAt);
+  const label = deadlineLabel(activeCommitteeDue(bill));
   return badge(label, st === "overdue" ? "b-red" : st === "due-soon" ? "b-amber" : "b-green");
 }
 function progress(pct, tone) {
@@ -1744,8 +1750,8 @@ function viewDashboard() {
   const types = typeSplit(bills);
   const stageRows = stageDistribution(bills).slice(0, 8);
   const recent = [...bills].sort((a, b) => new Date(b.stageEnteredAt) - new Date(a.stageEnteredAt)).slice(0, 6);
-  const watch = bills.filter((b) => b.committeeDueAt)
-    .sort((a, b) => new Date(a.committeeDueAt) - new Date(b.committeeDueAt)).slice(0, 5);
+  const watch = bills.filter((b) => activeCommitteeDue(b))
+    .sort((a, b) => new Date(activeCommitteeDue(a)) - new Date(activeCommitteeDue(b))).slice(0, 5);
   const events = bills.flatMap((b) => b.history.map((h) => ({ ...h, bill: b })))
     .sort((a, b) => new Date(b.at) - new Date(a.at)).slice(0, 5);
   const monthly = monthlySeries(bills);
@@ -1795,7 +1801,7 @@ function viewDashboard() {
           const st = deadlineState(b);
           const tone = st === "overdue" ? "red" : st === "due-soon" ? "amber" : "green";
           return '<div class="deadline" data-act="open-bill" data-id="' + esc(b.id) + '">' +
-            '<span class="ring ' + tone + '">' + deadlineDelta(b.committeeDueAt) + '</span>' +
+            '<span class="ring ' + tone + '">' + deadlineDelta(activeCommitteeDue(b)) + '</span>' +
             '<span class="txt"><b>' + esc(b.shortTitle) + "</b><span>" + esc(ministry(b.ministryId).short) + " · " + deadlineLabel(b.committeeDueAt) + "</span></span>" +
             badge(st === "overdue" ? "Overdue" : st === "due-soon" ? "Due soon" : "On track", st === "overdue" ? "b-red" : st === "due-soon" ? "b-amber" : "b-green") +
             "</div>";
@@ -1996,7 +2002,7 @@ function billSortValue(b, key) {
     case "house": return ({ NA: 0, Senate: 1 })[b.house] || 0;
     case "ministry": return ministry(b.ministryId).short.toLowerCase();
     case "stage": { const i = stageIndex(b); return i.index / Math.max(1, i.total); }
-    case "deadline": return b.committeeDueAt ? Date.parse(b.committeeDueAt) : Infinity;
+    case "deadline": return activeCommitteeDue(b) ? Date.parse(activeCommitteeDue(b)) : Infinity;
     case "updated": return Date.parse(b.stageEnteredAt) || 0;
     default: return Date.parse(b.registeredAt) || 0;
   }
@@ -2160,7 +2166,7 @@ function viewTracking() {
             const st = deadlineState(b);
             return '<div class="mini-bill" data-act="open-bill" data-id="' + esc(b.id) + '"><b>' + esc(b.shortTitle) + '</b>' +
               '<div class="sub">' + typeBadge(b.type) + '<span>' + esc(ministry(b.ministryId).short) + "</span></div>" +
-              '<div class="sub" style="margin-top:4px">' + (b.committeeDueAt ? deadlineBadge(b) : '<span class="muted">' + stageAge(b) + "d at stage</span>") + "</div></div>";
+              '<div class="sub" style="margin-top:4px">' + (activeCommitteeDue(b) ? deadlineBadge(b) : '<span class="muted">' + stageAge(b) + "d at stage</span>") + "</div></div>";
           }).join("") : '<div class="empty" style="padding:18px 8px;font-size:13px">No bills</div>') + "</div></div>";
       }).join("") + "</div>" +
     "</section>" +
@@ -3212,7 +3218,7 @@ function renderDrawer() {
         badge(d.classification, CLASS_TONE[d.classification]) + "</div>").join("") + "</div>" :
         emptyState("No documents linked", "Upload the bill copy to start the record."));
   } else if (tab === "compliance") {
-    const due = b.committeeDueAt ? deadlineLabel(b.committeeDueAt) : "Not in committee";
+    const due = activeCommitteeDue(b) ? deadlineLabel(activeCommitteeDue(b)) : "Not in committee";
     const trans = b.transmissionAt ? (daysBetween(b.transmissionAt) + " / 90 days used") : "Not transmitted";
     const stance = { support: "Support", oppose: "Oppose", conditional: "Conditional", pending: "Pending" }[b.ministryStance] || "—";
     const story = [
@@ -3667,7 +3673,7 @@ function reportDataset(r) {
         bills.map((b) => [b.id, b.title, TYPE_LABEL[b.type], b.house, ministry(b.ministryId).name, b.memberInCharge, stageMeta(b.stage).label, b.outcome]));
     case "R-02":
       return ds(["Bill ID", "Title", "Current stage", "Progress", "Days in stage", "Committee deadline", "Outcome"],
-        bills.map((b) => [b.id, b.title, stageMeta(b.stage).label, stageProgress(b) + "%", stageAge(b), b.committeeDueAt ? deadlineLabel(b.committeeDueAt) : "—", b.outcome]));
+        bills.map((b) => [b.id, b.title, stageMeta(b.stage).label, stageProgress(b) + "%", stageAge(b), activeCommitteeDue(b) ? deadlineLabel(activeCommitteeDue(b)) : "—", b.outcome]));
     case "R-03": {
       const stats = ministryStats(bills);
       return ds(["Division", "Code", "Bills received", "Active", "Assented", "Overdue", "Pending responses", "Focal person"],
