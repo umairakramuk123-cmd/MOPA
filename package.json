@@ -1,0 +1,59 @@
+{
+  "name": "mopa-legislative-portal",
+  "version": "1.2.0",
+  "description": "MoPA Legislative Monitoring Dashboard \u2014 a production-grade portal for the Ministry of Parliamentary Affairs, implemented by NITB.",
+  "scripts": {
+    "dev": "next dev -H 0.0.0.0",
+    "build": "next build",
+    "start": "next start -H 0.0.0.0",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/umairakramuk123-cmd/MOPA.git"
+  },
+  "keywords": [
+    "mopa",
+    "legislation",
+    "dashboard",
+    "nextjs",
+    "government",
+    "nitb"
+  ],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/umairakramuk123-cmd/MOPA/issues"
+  },
+  "homepage": "https://github.com/umairakramuk123-cmd/MOPA#readme",
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "@fontsource/instrument-serif": "^5.3.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.468.0",
+    "motion": "^12.43.0",
+    "next": "^15.5.28",
+    "react": "^19.1.10",
+    "react-dom": "^19.1.10",
+    "recharts": "^3.10.1",
+    "tailwind-merge": "^3.7.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "postcss": "^8.5.31",
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "postcss": "$postcss"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=20.9.0"
+  }
+}
