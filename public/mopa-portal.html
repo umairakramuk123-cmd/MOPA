@@ -2215,8 +2215,8 @@ function billsPagerHtml() {
     buttons += '<button data-act="bill-page" data-page="' + i + '" class="' + (i === page ? "on" : "") + '">' + (i + 1) + "</button>";
   }
   return '<div class="table-foot"><span>Showing <b>' + start + "–" + end + "</b> of <b>" + rows.length + "</b> bills</span>" +
-    '<div class="pager"><button data-act="bill-page" data-page="' + (page - 1) + '" ' + (page === 0 ? "disabled" : "") + ' aria-label="Previous">‹</button>' +
-    buttons + '<button data-act="bill-page" data-page="' + (page + 1) + '" ' + (page >= pages - 1 ? "disabled" : "") + ' aria-label="Next">›</button></div></div>';
+    (pages > 1 ? '<div class="pager"><button data-act="bill-page" data-page="' + (page - 1) + '" ' + (page === 0 ? "disabled" : "") + ' aria-label="Previous page">‹</button>' +
+      buttons + '<button data-act="bill-page" data-page="' + (page + 1) + '" ' + (page >= pages - 1 ? "disabled" : "") + ' aria-label="Next page">›</button></div>' : "") + "</div>";
 }
 function refreshBills() {
   const t = document.getElementById("bills-table");
@@ -2466,8 +2466,8 @@ function docsPagerHtml() {
   const to = Math.min(pages, from + 5);
   for (let i = from; i < to; i++) buttons += '<button data-act="doc-page" data-page="' + i + '" class="' + (i === page ? "on" : "") + '">' + (i + 1) + "</button>";
   return '<div class="table-foot"><span>Page <b>' + (page + 1) + "</b> of <b>" + pages + "</b> · " + rows.length + " documents</span>" +
-    '<div class="pager"><button data-act="doc-page" data-page="' + (page - 1) + '" ' + (page === 0 ? "disabled" : "") + ' aria-label="Previous page">‹</button>' + buttons +
-    '<button data-act="doc-page" data-page="' + (page + 1) + '" ' + (page >= pages - 1 ? "disabled" : "") + ' aria-label="Next page">›</button></div></div>';
+    (pages > 1 ? '<div class="pager"><button data-act="doc-page" data-page="' + (page - 1) + '" ' + (page === 0 ? "disabled" : "") + ' aria-label="Previous page">‹</button>' + buttons +
+      '<button data-act="doc-page" data-page="' + (page + 1) + '" ' + (page >= pages - 1 ? "disabled" : "") + ' aria-label="Next page">›</button></div>' : "") + "</div>";
 }
 function refreshDocs() {
   const t = document.getElementById("docs-table");
@@ -3261,13 +3261,14 @@ function renderTopbar() {
     menu.className = "menu";
     menu.id = "roleMenu";
     menu.setAttribute("role", "menu");
+    menu.setAttribute("aria-label", "Account");
     menu.innerHTML = '<div class="menu-title">Switch role</div>' +
-      DATA.roleOrder.map((id) => '<div class="menu-item ' + (state.role === id ? "on" : "") + '" data-act="switch-role" data-role="' + id + '" role="menuitem">' +
+      DATA.roleOrder.map((id) => '<div class="menu-item ' + (state.role === id ? "on" : "") + '" data-act="switch-role" data-role="' + id + '" role="menuitem" tabindex="-1">' +
         ic(ROLE_ICON[id] || "user", 14) + "<span>" + esc(DATA.roles[id].short) + "</span>" + (state.role === id ? '<span class="tick">' + ic("check", 13) + "</span>" : "") + "</div>").join("") +
       '<div class="menu-sep"></div>' +
-      '<div class="menu-item" data-nav="profile">' + ic("user", 14) + " My profile</div>" +
-      (can("settings.manage") ? '<div class="menu-item" data-nav="settings">' + ic("settings", 14) + " Settings</div>" : "") +
-      '<div class="menu-item danger" data-act="signout">' + ic("logout", 14) + " Sign out</div>";
+      '<div class="menu-item" role="menuitem" tabindex="-1" data-nav="profile">' + ic("user", 14) + " My profile</div>" +
+      (can("settings.manage") ? '<div class="menu-item" role="menuitem" tabindex="-1" data-nav="settings">' + ic("settings", 14) + " Settings</div>" : "") +
+      '<div class="menu-item danger" role="menuitem" tabindex="-1" data-act="signout">' + ic("logout", 14) + " Sign out</div>";
     menuHost.appendChild(menu);
   }
 }
@@ -3383,9 +3384,14 @@ function focusMain() {
 
 function closeMenu() {
   if (state.menu) {
+    const inMenu = document.activeElement && document.activeElement.closest && document.activeElement.closest("#roleMenu");
     state.menu = false;
     const m = document.getElementById("roleMenu");
     if (m) m.remove();
+    if (inMenu) {
+      const b = document.getElementById("userBtn");
+      if (b) b.focus({ preventScroll: true });
+    }
   }
   const btn = document.getElementById("userBtn");
   if (btn) btn.setAttribute("aria-expanded", "false");
@@ -3395,6 +3401,10 @@ function toggleMenu() {
   renderTopbar();
   const btn = document.getElementById("userBtn");
   if (btn) btn.setAttribute("aria-expanded", state.menu ? "true" : "false");
+  if (state.menu) {
+    const first = document.querySelector("#roleMenu [data-act]");
+    if (first) first.focus({ preventScroll: true });
+  }
 }
 function closeSidebar() {
   document.getElementById("sidebar").classList.remove("open");
@@ -4695,6 +4705,19 @@ document.addEventListener("keydown", (e) => {
     const typing = /INPUT|TEXTAREA|SELECT/.test(tag) || (e.target && e.target.isContentEditable);
     if (!typing && !document.getElementById("app").hidden) { e.preventDefault(); openShortcuts(); return; }
   }
+  if (state.menu && (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Home" || e.key === "End")) {
+    const items = [...document.querySelectorAll("#roleMenu [data-act]")];
+    if (items.length) {
+      e.preventDefault();
+      const at = items.indexOf(document.activeElement);
+      const next = e.key === "Home" ? 0
+        : e.key === "End" ? items.length - 1
+        : e.key === "ArrowDown" ? (at < 0 ? 0 : (at + 1) % items.length)
+        : (at <= 0 ? items.length - 1 : at - 1);
+      items[next].focus();
+      return;
+    }
+  }
   if (e.key === "Escape") {
     const modalOpen = document.getElementById("modal").classList.contains("on");
     const drawerOpen = document.getElementById("drawer").classList.contains("on");
@@ -4726,15 +4749,17 @@ document.addEventListener("keydown", (e) => {
     if (/^[0-9]$/.test(e.key) && e.target.value && idx < boxes.length - 1) boxes[idx + 1].focus();
   }
   if ((e.key === "Enter" || e.key === " ") && e.target && e.target.getAttribute) {
+    const native = e.target.matches("button,a,input,select,textarea");
     const actEl = e.target.closest("[data-act]");
-    if (actEl && !e.target.matches("button,a,input,select,textarea") && !e.target.closest("form")) {
+    const navEl = e.target.closest("[data-nav]");
+    if (navEl && !native) {
       e.preventDefault();
-      actEl.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      go(navEl.getAttribute("data-nav"));
       return;
     }
-    if (e.target.classList.contains("nav-item")) {
+    if (actEl && !native && !e.target.closest("form")) {
       e.preventDefault();
-      go(e.target.getAttribute("data-nav"));
+      actEl.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
       return;
     }
   }

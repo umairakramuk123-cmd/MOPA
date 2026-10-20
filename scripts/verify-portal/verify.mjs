@@ -322,6 +322,22 @@ section('Keyboard');
     assert(document.activeElement === $(`[data-act="tracking-type"][data-type="${type}"]`), 'segmented filter lost focus');
     return 'main region · ' + type + ' workflow';
   });
+  await check('account menu is operable from the keyboard', async () => {
+    const btn = $('#userBtn');
+    btn.focus(); click(btn); await sleep(250);
+    assert(btn.getAttribute('aria-expanded') === 'true', 'menu did not report expanded');
+    const first = document.activeElement;
+    assert(first.getAttribute('role') === 'menuitem', 'first menu item not focused');
+    const firstName = first.textContent.trim();
+    ctx.key(first, 'ArrowDown'); await sleep(80);
+    assert(document.activeElement.getAttribute('role') === 'menuitem' && document.activeElement.textContent.trim() !== firstName, 'ArrowDown did not move');
+    ctx.key(document.activeElement, 'End'); await sleep(80);
+    assert(/Sign out/.test(document.activeElement.textContent), 'End did not reach sign out');
+    ctx.key(document.activeElement, 'Escape'); await sleep(220);
+    assert(!$('#roleMenu') && btn.getAttribute('aria-expanded') === 'false', 'Escape did not close the menu');
+    assert(document.activeElement === btn, 'focus did not return to the account button');
+    return 'arrows · Home/End · Escape';
+  });
   await check('column headers are scoped and overlays are dialogs', async () => {
     let headers = 0;
     for (const view of VIEWS) {
