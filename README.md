@@ -194,7 +194,8 @@ scripts/
 - Focus is trapped inside open modals and drawers, and restored to the page on close
 - Moving between views puts focus on the main region; filter chips, segmented controls and pagers keep focus where you left it, and every column header is scoped
 - The account menu is a real menu: arrow keys, Home/End and Escape work, focus lands on the first item and returns to the trigger, and every item is reachable by keyboard
-- The shell is a pinned two-column grid (`sidebar | main`); the mobile drawer scrim is desktop-hidden, so the workspace can never fall into a narrow second row
+- The shell is a flex row (`sidebar | main`) — an extra child can never displace the workspace — and a runtime check re-asserts the two columns if a browser ever stacks them
+- An empty workspace pane shows "Preparing your workspace…" instead of blank white, and a failed view renders a readable error card
 - Every grid track uses `minmax(0,1fr)`, so cards shrink instead of pushing a horizontal scrollbar at 360–768 px
 - Charts expose an accessible text summary (`role="img"` with a generated label)
 - Live region announces view changes and table sorting to screen readers

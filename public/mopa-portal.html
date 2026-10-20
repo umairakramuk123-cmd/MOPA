@@ -136,11 +136,18 @@ button:focus:not(:focus-visible){outline:none}
 .card-sub{font-size:var(--fs-13);color:var(--muted);margin-top:2px;line-height:1.5}
 .card-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:var(--fs-13);color:var(--muted)}
 
+/* an empty main pane must never look like a blank page */
+#view:empty{min-height:220px;display:flex;align-items:center;justify-content:center}
+#view:empty::before{
+  content:"Preparing your workspace…";font-size:var(--fs-13);color:var(--muted);
+  padding:18px 22px;border:1px dashed var(--line-2);border-radius:14px;background:rgba(255,255,255,.6);
+}
+
 /* ---------- app shell ---------- */
-.app{display:grid;grid-template-columns:252px minmax(0,1fr);min-height:100vh;gap:0}
-.side-scrim{display:none}
+.app{display:flex;align-items:flex-start;min-height:100vh}
+.side-scrim{display:none;position:fixed;inset:0}
 .sidebar{
-  grid-column:1;grid-row:1;
+  flex:0 0 252px;max-width:252px;
   position:sticky;top:12px;margin:12px 0 12px 12px;
   height:calc(100vh - 24px);
   display:flex;flex-direction:column;gap:6px;
@@ -212,7 +219,7 @@ button:focus:not(:focus-visible){outline:none}
 .role-org{font-size:var(--fs-13);color:var(--muted);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .side-note{font-size:var(--fs-13);color:var(--muted-2);padding:2px 6px 0;line-height:1.5}
 
-.main{grid-column:2;grid-row:1;min-width:0;padding:12px 14px 26px 14px;display:flex;flex-direction:column;gap:14px}
+.main{flex:1 1 0;min-width:0;padding:12px 14px 26px 14px;display:flex;flex-direction:column;gap:14px}
 
 /* ---------- topbar ---------- */
 .topbar{
@@ -296,7 +303,7 @@ button:focus:not(:focus-visible){outline:none}
 .sr-item .sr-tag{margin-left:auto;font-size:var(--fs-13);color:var(--muted-2);white-space:nowrap}
 
 /* ---------- page ---------- */
-.page{display:flex;flex-direction:column;gap:13px;opacity:1;animation:rise .38s cubic-bezier(.22,1,.36,1);max-width:1440px;width:100%;margin:0 auto}
+.page{display:flex;flex-direction:column;gap:13px;opacity:1;max-width:1440px;width:100%;margin:0 auto}
 @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:2px 2px 0}
 .eyebrow{
@@ -921,7 +928,7 @@ table.tbl tbody tr:last-child td{border-bottom:0}
   .c3{grid-column:span 6}
 }
 @media (max-width:960px){
-  .app{grid-template-columns:minmax(0,1fr)}
+  .app{display:block}
   .sidebar{
     position:fixed;left:0;top:0;bottom:0;margin:0;height:100vh;width:272px;border-radius:0 22px 22px 0;
     transform:translateX(-104%);transition:transform .28s cubic-bezier(.22,1,.36,1);
@@ -1258,7 +1265,7 @@ body.density-compact .card-head{padding-bottom:8px}
       <div class="side-spacer"></div>
       <div class="side-foot">
         <div class="role-card" id="sideRole"></div>
-        <div class="side-note">BRD 1.2 · MoPA · Implemented by NITB</div>
+        <div class="side-note">BRD 1.2 · MoPA · Implemented by NITB<br><span id="buildStamp" style="opacity:.75">build 2026-10-20 · r3</span></div>
       </div>
     </aside>
     <div class="side-scrim" id="sideScrim"></div>
@@ -1305,7 +1312,7 @@ body.density-compact .card-head{padding-bottom:8px}
 
       <footer style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:2px 4px;font-size:13px;color:var(--muted-2)">
         <span>© 2026 Ministry of Parliamentary Affairs · Data classification: Restricted</span>
-        <span>Single-file edition · ApexCharts · Manrope · build 2026-10-20</span>
+        <span>Single-file edition · ApexCharts · Manrope · build 2026-10-20 · r3</span>
       </footer>
     </div>
   </div>
@@ -3411,6 +3418,36 @@ function focusMain() {
   const host = document.getElementById("view");
   if (host && state.entered) host.focus({ preventScroll: true });
 }
+/* If a browser ever stacks the workspace under the sidebar, put it back. */
+function ensureShell() {
+  try {
+    if (window.innerWidth <= 960) return;
+    const app = document.querySelector(".app");
+    const main = document.querySelector(".main");
+    const side = document.getElementById("sidebar");
+    if (!app || !main || !side) return;
+    const a = side.getBoundingClientRect();
+    const b = main.getBoundingClientRect();
+    if (!a.width || !b.width) return;
+    const stacked = b.left < a.right - 8 || b.top > a.top + 40 || b.width < a.width * 1.5;
+    if (!stacked) return;
+    const put = (el, prop, val) => el.style.setProperty(prop, val, "important");
+    put(app, "display", "flex");
+    put(app, "align-items", "flex-start");
+    put(app, "grid-template-columns", "none");
+    put(side, "flex", "0 0 252px");
+    put(side, "max-width", "252px");
+    put(side, "grid-column", "auto");
+    put(side, "grid-row", "auto");
+    put(main, "flex", "1 1 0");
+    put(main, "min-width", "0");
+    put(main, "grid-column", "auto");
+    put(main, "grid-row", "auto");
+    const scrim = document.getElementById("sideScrim");
+    if (scrim) put(scrim, "display", "none");
+    console.warn("MoPA: workspace layout repaired at runtime");
+  } catch (e) {}
+}
 
 function closeMenu() {
   if (state.menu) {
@@ -4295,6 +4332,8 @@ function enterPortal(roleId, viaSkip) {
   const deep = readHash();
   if (deep && canOpen(deep)) state.view = deep;
   render();
+  ensureShell();
+  setTimeout(ensureShell, 400);
   const r = role();
   toast(viaSkip ? "Preview mode" : "Signed in", "Workspace opened as " + r.short + ".", "good");
   window.scrollTo({ top: 0, behavior: "auto" });
@@ -4613,6 +4652,11 @@ function showRenderFailure(message) {
     host.innerHTML = renderFailure(message);
   } catch (e) {}
 }
+let shellTimer = 0;
+window.addEventListener("resize", () => {
+  clearTimeout(shellTimer);
+  shellTimer = setTimeout(ensureShell, 150);
+});
 window.addEventListener("error", (event) => showRenderFailure(event.message || "Unknown script error"));
 window.addEventListener("unhandledrejection", (event) => showRenderFailure(String((event.reason && event.reason.message) || event.reason || "Unhandled promise rejection")));
 
