@@ -132,6 +132,7 @@ Node 20.9+ required. The dev server binds to `0.0.0.0` so it can be previewed th
 - Shortcut sheet on `?` (also in Help), listing every real binding
 - CSV exports follow the active filters and say so in the confirmation
 - Audit trail pages through every event; the inter-House clock is derived from history when the field is absent
+- Charts stay honest: the severity donut follows the active alert chip and retitles itself, and an empty dataset renders a written empty state instead of a blank ring
 - Command palette on `⌘K` across bills, documents, divisions, reports and pages, with arrow-key navigation
 - All fifteen statutory reports open a live preview built from the current records, exportable as CSV or via print/PDF
 - Settings that actually apply: alert rules mute notifications everywhere, compact density, OTP on/off, idle logout, IP-range chip
@@ -147,7 +148,7 @@ Open it directly in a browser, or run the dev server and visit `http://localhost
 npm run verify:portal
 ```
 
-Boots `public/mopa-portal.html` in jsdom and drives it like a user — sign-in and OTP, all fifteen views, sortable registry, command palette, every one of the fifteen reports (preview, CSV, print sheet), alert-rule settings, dataset reset, focus traps, an accessibility sweep over every view, cross-view number consistency, and all seven role scopes, plus the idle-session warning filtered exports, transmission tracking and table paging. 31 checks, exits non-zero on the first regression.
+Boots `public/mopa-portal.html` in jsdom and drives it like a user — sign-in and OTP, all fifteen views, sortable registry, command palette, every one of the fifteen reports (preview, CSV, print sheet), alert-rule settings, dataset reset, focus traps, an accessibility sweep over every view, cross-view number consistency, and all seven role scopes, plus the idle-session warning, filtered exports, transmission tracking, audit and table paging and the alert-chip invariants. 32 checks, exits non-zero on the first regression.
 
 ---
 
@@ -180,7 +181,7 @@ src/
 scripts/
 └─ verify-portal/                        # jsdom end-to-end pass over the single file
    ├─ lib.mjs                            # boot helper (Apex stub, stubs, captures)
-   └─ verify.mjs                         # 25 checks: views, a11y, reports, roles
+   └─ verify.mjs                         # 32 checks: views, a11y, reports, roles
 ```
 
 ---

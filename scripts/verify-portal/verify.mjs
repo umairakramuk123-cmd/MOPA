@@ -449,6 +449,32 @@ section('Number consistency');
     assert(before !== after, 'bell did not change');
     return before + ' → ' + after;
   });
+  await check('severity mix follows the alert status chip', async () => {
+    click('[data-nav="alerts"]'); await sleep(300);
+    const words = { open: 'Open alerts', acknowledged: 'Acknowledged alerts', resolved: 'Resolved alerts', all: 'All alerts' };
+    const seen = [];
+    for (const status of ['open', 'acknowledged', 'resolved', 'all']) {
+      click(`[data-act="alert-filter"][data-status="${status}"]`); await sleep(220);
+      const chip = Number($(`[data-act="alert-filter"][data-status="${status}"] .n`).textContent);
+      const shot = window.eval(`(() => {
+        const c = CHARTS.filter((x) => x.el && x.el.id === "ch-severity").pop();
+        const sub = [...document.querySelectorAll(".card-sub")].map((e) => e.textContent.trim()).find((t) => / by severity$/.test(t));
+        const legend = [...document.querySelectorAll(".legend-row")].slice(-3)
+          .map((e) => Number(e.querySelector("b").textContent)).reduce((a, b) => a + b, 0);
+        return { sum: c ? c.opts.series.reduce((a, b) => a + b, 0) : null, legend, sub: sub || "",
+          empty: !!document.querySelector("#ch-severity .chart-empty") };
+      })()`);
+      assert(shot.sub === words[status] + ' by severity', `${status}: subtitle reads “${shot.sub}”`);
+      if (chip === 0) {
+        assert(shot.sum === null && shot.empty, `${status}: empty chip should show an empty state, got series ${shot.sum}`);
+      } else {
+        assert(shot.sum === chip, `${status}: donut ${shot.sum} does not match the chip count ${chip}`);
+        assert(shot.legend === chip, `${status}: legend ${shot.legend} does not match the chip count ${chip}`);
+      }
+      seen.push(`${status} ${chip}`);
+    }
+    return seen.join(' · ');
+  });
   ctx.dom.window.close();
 }
 

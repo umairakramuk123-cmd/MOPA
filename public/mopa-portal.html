@@ -622,6 +622,7 @@ table.tbl tbody tr:last-child td{border-bottom:0}
 }
 .empty .ic{opacity:.5}
 .empty b{font-size:var(--fs-14);color:var(--ink);font-weight:750}
+.chart-empty{height:100%;min-height:150px;padding:18px 12px;gap:4px}
 
 /* ---------- workflow board ---------- */
 .board{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(210px,1fr);gap:10px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
@@ -1453,6 +1454,20 @@ function mutedRuleCount() {
 function visibleAlerts() {
   return roleAlerts().filter((a) => ruleEnabled(a.type));
 }
+function filteredAlerts() {
+  const f = state.filters;
+  return visibleAlerts()
+    .filter((a) => f.alertStatus === "all" || a.status === f.alertStatus)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+}
+function alertScopeLabel() {
+  const s = state.filters.alertStatus;
+  return s === "all" ? "All alerts" : s === "acknowledged" ? "Acknowledged alerts" : s === "resolved" ? "Resolved alerts" : "Open alerts";
+}
+function alertScopeNoun() {
+  const s = state.filters.alertStatus;
+  return s === "all" ? "alerts" : s === "acknowledged" ? "acknowledged alerts" : s === "resolved" ? "resolved alerts" : "open alerts";
+}
 function ministry(id) {
   return DATA.ministries.find((m) => m.id === id) || { id, name: "Unassigned", short: "Unassigned", code: "—" };
 }
@@ -1724,6 +1739,14 @@ function mountChart(id, options) {
   el.setAttribute("role", "img");
   el.setAttribute("aria-label", chartSummary(cfg));
   return c;
+}
+function mountChartEmpty(id, title, sub) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.removeAttribute("aria-label");
+  el.setAttribute("role", "img");
+  el.setAttribute("aria-label", title + ". " + (sub || ""));
+  el.innerHTML = '<div class="empty chart-empty">' + ic("chart", 20) + "<b>" + esc(title) + "</b><span>" + esc(sub || "") + "</span></div>";
 }
 function chartSummary(cfg) {
   const type = (cfg.chart && cfg.chart.type) || "chart";
@@ -2331,7 +2354,7 @@ function viewCommittees() {
             '<td class="right">' + (can("stages.update") && isCommitteeStage(b) ? '<button class="btn sm soft" data-act="stage-update" data-id="' + esc(b.id) + '">Report</button>' : '<span class="link">Open ' + ic("right", 11) + "</span>") + "</td></tr>";
         }).join("") : '<tr><td colspan="7">' + emptyState("No committee referrals", "Bills will appear here when referred.") + "</td></tr>") +
         "</tbody></table></div>" +
-        '<div class="table-foot"><span>Showing ' + Math.min(12, rows.length) + " of " + rows.length + " committee bills</span><span class='muted'>Limit: Senate 60 days · NA 30 days</span></div>" +
+        '<div class="table-foot"><span>' + (rows.length ? "Showing <b>1–" + rows.length + "</b> of <b>" + rows.length + "</b> committee bills" : "No committee bills in view") + "</span><span class='muted'>Limit: Senate 60 days · NA 30 days</span></div>" +
       "</section>" +
       '<section class="card c4">' +
         '<div class="card-head"><div><div class="card-title">Clock health</div><div class="card-sub">Committee bills by deadline state</div></div></div>' +
@@ -2351,6 +2374,10 @@ function viewCommittees() {
 }
 function mountCommitteeCharts() {
   const rows = committeeBills();
+  if (!rows.length) {
+    mountChartEmpty("ch-committee", "No committee referrals", "Bills land here once a House refers them to a Standing Committee.");
+    return;
+  }
   const counts = ["on-track", "due-soon", "overdue"].map((k) => rows.filter((b) => deadlineState(b) === k).length);
   mountChart("ch-committee", {
     chart: { type: "donut", height: 218 },
@@ -2522,8 +2549,7 @@ function viewAlerts() {
     acknowledged: all.filter((a) => a.status === "acknowledged").length,
     resolved: all.filter((a) => a.status === "resolved").length,
   };
-  const list = all.filter((a) => f.alertStatus === "all" || a.status === f.alertStatus)
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const list = filteredAlerts();
 
   const muted = mutedRuleCount();
   return '<div class="page">' +
@@ -2560,12 +2586,12 @@ function viewAlerts() {
         }).join("") : emptyState("Nothing here", "No alerts match this filter.")) + "</div>" +
       "</section>" +
       '<section class="card c4">' +
-        '<div class="card-head"><div><div class="card-title">Severity mix</div><div class="card-sub">Open alerts by severity</div></div></div>' +
+        '<div class="card-head"><div><div class="card-title">Severity mix</div><div class="card-sub">' + alertScopeLabel() + " by severity</div></div></div>" +
         '<div id="ch-severity" class="chart" style="height:206px"></div>' +
         '<div class="legend">' +
-          ["critical", "warning", "info"].map((sev, i) => '<div class="legend-row"><span class="legend-swatch" style="background:' + ["#ef4444", "#f59e0b", "#2563eb"][i] + '"></span>' + sev[0].toUpperCase() + sev.slice(1) + "<b>" + all.filter((a) => a.severity === sev && a.status === "open").length + "</b></div>").join("") +
+          ["critical", "warning", "info"].map((sev, i) => '<div class="legend-row"><span class="legend-swatch" style="background:' + ["#ef4444", "#f59e0b", "#2563eb"][i] + '"></span>' + sev[0].toUpperCase() + sev.slice(1) + "<b>" + list.filter((a) => a.severity === sev).length + "</b></div>").join("") +
         "</div>" +
-        '<div class="kv" style="margin-top:6px"><span>Auto-acknowledge</span><b>' + (state.settings.response ? "On" : "Off") + "</b></div>" +
+        '<div class="kv" style="margin-top:6px"><span>Response-due alerts</span><b>' + (state.settings.response ? "On" : "Off") + "</b></div>" +
         '<div class="kv"><span>Escalation window</span><b>7 days</b></div>' +
         '<div class="kv"><span>Last rule run</span><b>Today, 10:42</b></div>' +
         '<div class="banner green" style="margin-top:9px">' + ic("info", 14) + "<span>Rules run every 15 minutes against stage dates and constitutional clocks.</span></div>" +
@@ -2573,7 +2599,11 @@ function viewAlerts() {
     "</div></div>";
 }
 function mountAlertCharts() {
-  const all = visibleAlerts().filter((a) => a.status === "open");
+  const all = filteredAlerts();
+  if (!all.length) {
+    mountChartEmpty("ch-severity", "Nothing to chart", "No " + alertScopeNoun() + " for your role right now.");
+    return;
+  }
   mountChart("ch-severity", {
     chart: { type: "donut", height: 206 },
     series: ["critical", "warning", "info"].map((sev) => all.filter((a) => a.severity === sev).length),
