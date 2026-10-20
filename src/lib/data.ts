@@ -235,7 +235,8 @@ function buildHistory(row: Row, index: number, id: string, registeredAt: string,
     });
   }
 
-  return events;
+  // Guarantee a strictly chronological log — the audit view depends on it.
+  return events.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 }
 
 function buildBills(): Bill[] {

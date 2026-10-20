@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { cn, formatDate } from "@/lib/format";
 import { useStore } from "@/lib/store";
-import { DOCUMENTS, ministryShort } from "@/lib/data";
+import { ministryShort } from "@/lib/data";
 import { can } from "@/lib/roles";
 import { DOC_TYPES, stagesFor } from "@/lib/workflows";
 
@@ -40,7 +40,7 @@ const TYPE_ICON: Record<string, React.ElementType> = {
 };
 
 export function DocumentsView() {
-  const { bills, session, toast } = useStore();
+  const { bills, session, toast, documents, addDocument } = useStore();
   const [query, setQuery] = React.useState("");
   const [type, setType] = React.useState("all");
   const [cls, setCls] = React.useState<"all" | "public" | "restricted" | "classified">("all");
@@ -48,7 +48,7 @@ export function DocumentsView() {
   const [page, setPage] = React.useState(0);
   const canUpload = can(session.role, "documents.upload");
 
-  const permitted = DOCUMENTS.filter(
+  const permitted = documents.filter(
     (d) => d.classification !== "classified" || can(session.role, "documents.classified"),
   );
   const visibleDocs = permitted.filter((d) => cls === "all" || d.classification === cls);
@@ -71,14 +71,14 @@ export function DocumentsView() {
   const missing = bills
     .map((bill) => {
       const required = stagesFor(bill.type).filter((s) => s.gate.toLowerCase().includes("document") || s.gate.toLowerCase().includes("copy"));
-      const count = DOCUMENTS.filter((d) => d.billId === bill.id).length;
+      const count = documents.filter((d) => d.billId === bill.id).length;
       return { bill, required: required.length, count, gap: Math.max(0, Math.min(4, 3 - count)) };
     })
     .filter((x) => x.gap > 0)
     .slice(0, 5);
 
-  const totalMb = DOCUMENTS.reduce((sum, d) => sum + parseFloat(d.size), 0);
-  const classified = DOCUMENTS.filter((d) => d.classification === "classified").length;
+  const totalMb = documents.reduce((sum, d) => sum + parseFloat(d.size), 0);
+  const classified = documents.filter((d) => d.classification === "classified").length;
 
   return (
     <div className="space-y-4">
@@ -94,7 +94,7 @@ export function DocumentsView() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="md" onClick={() => toast({ title: "Repository index exported", description: `${DOCUMENTS.length} documents listed as CSV.`, tone: "success" })}>
+          <Button variant="secondary" size="md" onClick={() => toast({ title: "Repository index exported", description: `${documents.length} documents listed as CSV.`, tone: "success" })}>
             <Download size={13} /> Export index
           </Button>
           {canUpload && (
@@ -107,7 +107,7 @@ export function DocumentsView() {
 
       <StatStrip
         items={[
-          { label: "Documents", value: DOCUMENTS.length, tone: "var(--ink)" },
+          { label: "Documents", value: documents.length, tone: "var(--ink)" },
           { label: "Archive size", value: `${totalMb.toFixed(0)} MB`, tone: "var(--chart-4)" },
           { label: "Classified", value: classified, tone: "var(--danger)" },
           { label: "Coverage", value: "94%", hint: "required slots", tone: "var(--success)" },
@@ -341,18 +341,40 @@ export function DocumentsView() {
         </div>
       </div>
 
-      <UploadDocumentModal open={uploadOpen} onClose={() => setUploadOpen(false)} onDone={(name) => {
-        toast({ title: "Document linked", description: `${name} added to the central repository.`, tone: "success" });
-        setUploadOpen(false);
-      }} />
+      <UploadDocumentModal
+        open={uploadOpen}
+        bills={bills.map((b) => b.id)}
+        onClose={() => setUploadOpen(false)}
+        onDone={(input) => {
+          addDocument(input);
+          setUploadOpen(false);
+        }}
+      />
     </div>
   );
 }
 
-function UploadDocumentModal({ open, onClose, onDone }: { open: boolean; onClose: () => void; onDone: (name: string) => void }) {
+function UploadDocumentModal({
+  open,
+  onClose,
+  onDone,
+  bills,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onDone: (input: {
+    name: string;
+    type: "Bill Copy" | "Order of the Day" | "Committee Report" | "Ministry Response" | "Transmitted Copy" | "Presidential Message" | "Gazette Notification";
+    billId: string;
+    size: string;
+    classification: "public" | "restricted" | "classified";
+  }) => void;
+  bills: string[];
+}) {
   const [type, setType] = React.useState<string>("Bill Copy");
-  const [billId, setBillId] = React.useState("MOPA-2026-1040");
+  const [billId, setBillId] = React.useState(bills[0] ?? "MOPA-2026-1040");
   const [name, setName] = React.useState("");
+  const [classification, setClassification] = React.useState<"public" | "restricted" | "classified">("public");
   return (
     <Modal
       open={open}
@@ -365,7 +387,20 @@ function UploadDocumentModal({ open, onClose, onDone }: { open: boolean; onClose
           <Button variant="secondary" size="sm" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="primary" size="sm" onClick={() => onDone(name || type)} disabled={!name}>
+          <Button
+            variant="primary"
+            size="sm"
+            disabled={!name}
+            onClick={() =>
+              onDone({
+                name,
+                type: type as "Bill Copy",
+                billId,
+                size: `${(0.6 + (name.length % 30) / 10).toFixed(1)} MB`,
+                classification,
+              })
+            }
+          >
             <Upload size={12} /> Link document
           </Button>
         </>
@@ -375,7 +410,7 @@ function UploadDocumentModal({ open, onClose, onDone }: { open: boolean; onClose
         <label className="block">
           <span className="mb-1.5 block text-[11px] font-medium text-ink-2">Linked bill</span>
           <select value={billId} onChange={(e) => setBillId(e.target.value)} className="field h-10 text-[12px]">
-            {["MOPA-2026-1040", "MOPA-2026-1041", "MOPA-2026-1042", "MOPA-2026-1043"].map((id) => (
+            {bills.map((id) => (
               <option key={id}>{id}</option>
             ))}
           </select>
@@ -388,6 +423,27 @@ function UploadDocumentModal({ open, onClose, onDone }: { open: boolean; onClose
             ))}
           </select>
         </label>
+        <div>
+          <p className="mb-1.5 text-[11px] font-medium text-ink-2">Classification</p>
+          <div className="flex flex-wrap gap-1.5">
+            {(["public", "restricted", "classified"] as const).map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setClassification(c)}
+                className={cn(
+                  "rounded-md border px-2 py-1 text-[10.5px] font-medium capitalize transition-colors",
+                  classification === c
+                    ? "border-brand bg-brand-soft text-brand-ink"
+                    : "border-line text-muted hover:text-ink",
+                )}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <label className="block">
           <span className="mb-1.5 block text-[11px] font-medium text-ink-2">File</span>
           <input

@@ -2,11 +2,11 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ALERTS, APPROVALS, BILLS, USERS } from "./data";
+import { ALERTS, APPROVALS, BILLS, DOCUMENTS, USERS } from "./data";
 import { ROLES } from "./roles";
 import { SYSTEM_DATE, daysBetween } from "./format";
 import { SESSION_COOKIE, buildSession } from "./session";
-import { Alert, ApprovalRequest, Bill, RoleId, Session, StageKey, User } from "./types";
+import { Alert, ApprovalRequest, Bill, BillDocument, RoleId, Session, StageKey, User } from "./types";
 import { STAGE_LIBRARY } from "./workflows";
 
 export { SESSION_COOKIE };
@@ -24,6 +24,14 @@ type StoreValue = {
   alerts: Alert[];
   approvals: ApprovalRequest[];
   users: User[];
+  documents: BillDocument[];
+  addDocument: (input: {
+    name: string;
+    type: BillDocument["type"];
+    billId: string;
+    size: string;
+    classification: BillDocument["classification"];
+  }) => void;
   theme: "light" | "dark";
   toggleTheme: () => void;
   commandOpen: boolean;
@@ -67,6 +75,7 @@ export function StoreProvider({
   const [allBills, setAllBills] = useState<Bill[]>(BILLS);
   const [alerts, setAlerts] = useState<Alert[]>(ALERTS);
   const [approvals, setApprovals] = useState<ApprovalRequest[]>(APPROVALS);
+  const [documents, setDocuments] = useState<BillDocument[]>(DOCUMENTS);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [commandOpen, setCommandOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -283,6 +292,51 @@ export function StoreProvider({
     [allBills, session, toast],
   );
 
+  const addDocument = useCallback<StoreValue["addDocument"]>(
+    (input) => {
+      const doc: BillDocument = {
+        id: `DOC-${9100 + documents.length + 1}`,
+        name: input.name,
+        type: input.type,
+        billId: input.billId,
+        size: input.size,
+        uploadedAt: new Date().toISOString(),
+        uploadedBy: session.user.name,
+        classification: input.classification,
+        version: 1,
+      };
+      setDocuments((prev) => [doc, ...prev]);
+      setAllBills((prev) =>
+        prev.map((b) =>
+          b.id === input.billId
+            ? {
+                ...b,
+                documentCount: b.documentCount + 1,
+                history: [
+                  ...b.history,
+                  {
+                    id: `${b.id}-doc${b.history.length}`,
+                    at: doc.uploadedAt,
+                    stage: b.stage,
+                    actor: session.user.name,
+                    actorRole: session.role.id,
+                    note: `Document linked to the record — ${input.type} (${input.classification}).`,
+                    reference: doc.id,
+                  },
+                ],
+              }
+            : b,
+        ),
+      );
+      toast({
+        title: "Document linked",
+        description: `${input.type} · ${input.billId}. Stored in the repository with an audit entry.`,
+        tone: "success",
+      });
+    },
+    [documents.length, session, toast],
+  );
+
   const acknowledgeAlert = useCallback(
     (id: string) => {
       setAlerts((prev) => prev.map((a) => (a.id === id ? { ...a, status: "acknowledged" } : a)));
@@ -320,6 +374,8 @@ export function StoreProvider({
       alerts,
       approvals,
       users: USERS,
+      documents,
+      addDocument,
       theme,
       toggleTheme,
       commandOpen,
@@ -346,6 +402,8 @@ export function StoreProvider({
       bills,
       alerts,
       approvals,
+      documents,
+      addDocument,
       theme,
       toggleTheme,
       commandOpen,

@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { cn, daysBetween, formatDate, formatDateTime, SYSTEM_DATE } from "@/lib/format";
 import { useStore } from "@/lib/store";
-import { AUDIT, DOCUMENTS, ministryById } from "@/lib/data";
+import { AUDIT, ministryById } from "@/lib/data";
 import { billAge, stageAge, stageIndex } from "@/lib/metrics";
 import { can } from "@/lib/roles";
 import { COMMITTEE_LIMITS, STAGE_LIBRARY, TYPE_LABEL, WORKFLOW_META, stagesFor } from "@/lib/workflows";
@@ -38,7 +38,7 @@ import {
 type Tab = "timeline" | "documents" | "compliance" | "audit";
 
 export function BillDetailView({ id }: { id: string }) {
-  const { bills, session, toast } = useStore();
+  const { bills, session, toast, documents, addDocument } = useStore();
   const [tab, setTab] = React.useState<Tab>("timeline");
   const [stageOpen, setStageOpen] = React.useState(false);
   const [uploadOpen, setUploadOpen] = React.useState(false);
@@ -70,7 +70,7 @@ export function BillDetailView({ id }: { id: string }) {
   const stages = stagesFor(bill.type);
   const { index, total } = stageIndex(bill);
   const history = [...bill.history].reverse();
-  const docs = DOCUMENTS.filter((d) => d.billId === bill.id);
+  const docs = documents.filter((d) => d.billId === bill.id);
   const audit = AUDIT.filter((a) => a.entityId === bill.id);
   const overdue = bill.committeeDueAt ? daysBetween(SYSTEM_DATE, bill.committeeDueAt) < 0 : false;
   const canEdit = can(role, "stages.update");
@@ -584,7 +584,12 @@ export function BillDetailView({ id }: { id: string }) {
       </div>
 
       <StageUpdateModal open={stageOpen} onClose={() => setStageOpen(false)} bill={bill} />
-      <UploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} bill={bill} />
+      <UploadModal
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        bill={bill}
+        onUpload={addDocument}
+      />
       <StanceModal open={stanceOpen} onClose={() => setStanceOpen(false)} bill={bill} />
     </div>
   );
@@ -758,17 +763,34 @@ function StageUpdateModal({ open, onClose, bill }: { open: boolean; onClose: () 
 }
 
 /* -------------------------------- Upload -------------------------------- */
-function UploadModal({ open, onClose, bill }: { open: boolean; onClose: () => void; bill: Bill }) {
-  const { toast } = useStore();
+function UploadModal({
+  open,
+  onClose,
+  bill,
+  onUpload,
+}: {
+  open: boolean;
+  onClose: () => void;
+  bill: Bill;
+  onUpload: (input: {
+    name: string;
+    type: "Bill Copy";
+    billId: string;
+    size: string;
+    classification: "public" | "restricted" | "classified";
+  }) => void;
+}) {
   const [type, setType] = React.useState("Bill Copy");
-  const [classification, setClassification] = React.useState("public");
+  const [classification, setClassification] = React.useState<"public" | "restricted" | "classified">("public");
   const [fileName, setFileName] = React.useState("");
 
   const submit = () => {
-    toast({
-      title: "Document linked to bill",
-      description: `${type} · ${classification} · ${bill.id}. Repository and audit updated.`,
-      tone: "success",
+    onUpload({
+      name: fileName || `${type} — ${bill.shortTitle}`,
+      type: type as "Bill Copy",
+      billId: bill.id,
+      size: `${(0.7 + (fileName.length % 25) / 10).toFixed(1)} MB`,
+      classification,
     });
     onClose();
     setFileName("");
@@ -822,7 +844,7 @@ function UploadModal({ open, onClose, bill }: { open: boolean; onClose: () => vo
             {["public", "restricted", "classified"].map((c) => (
               <button
                 key={c}
-                onClick={() => setClassification(c)}
+                onClick={() => setClassification(c as "public" | "restricted" | "classified")}
                 className={cn(
                   "rounded-md border px-2 py-1 text-[10.5px] font-medium capitalize transition-colors",
                   classification === c

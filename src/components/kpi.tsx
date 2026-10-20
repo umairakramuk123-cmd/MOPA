@@ -3,6 +3,7 @@
 import * as React from "react";
 import { cn } from "@/lib/format";
 import { Card, Delta, Gauge, Progress, Sparkline } from "@/components/ui/primitives";
+import { Counter } from "@/components/ui/counter";
 import type { LucideIcon } from "lucide-react";
 import { ArrowUpRight, Info } from "lucide-react";
 
@@ -94,7 +95,7 @@ export function KpiCard({
         <div className="min-w-0">
           <p className="flex items-baseline gap-1">
             <span className="num text-[30px] font-semibold leading-none tracking-[-0.055em] text-ink">
-              {value}
+              {typeof value === "number" ? <Counter value={value} /> : value}
             </span>
             {unit && <span className="text-[11px] font-medium text-muted">{unit}</span>}
           </p>

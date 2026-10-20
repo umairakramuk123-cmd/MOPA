@@ -37,56 +37,56 @@ export function CommandPalette() {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const role = session.role;
 
-  const pages: Result[] = [
-    ...NAV_GROUPS.flatMap((g) =>
-      g.items
-        .filter((i) => !i.permission || can(role, i.permission))
-        .map((i) => ({
-          id: `nav-${i.href}`,
-          label: i.label,
-          sub: i.hint ?? g.label,
-          group: "Navigate",
-          href: i.href,
-          icon: <i.icon size={15} />,
-        })),
-    ),
-    ...UTILITY_NAV.map((i) => ({
-      id: `nav-${i.href}`,
-      label: i.label,
-      sub: "Support",
-      group: "Navigate",
-      href: i.href,
-      icon: <i.icon size={15} />,
-    })),
-  ];
+  const filtered = React.useMemo<Result[]>(() => {
+    const pages: Result[] = [
+      ...NAV_GROUPS.flatMap((g) =>
+        g.items
+          .filter((i) => !i.permission || can(role, i.permission))
+          .map((i) => ({
+            id: `nav-${i.href}`,
+            label: i.label,
+            sub: i.hint ?? g.label,
+            group: "Navigate",
+            href: i.href,
+            icon: <i.icon size={15} />,
+          })),
+      ),
+      ...UTILITY_NAV.map((i) => ({
+        id: `nav-${i.href}`,
+        label: i.label,
+        sub: "Support",
+        group: "Navigate",
+        href: i.href,
+        icon: <i.icon size={15} />,
+      })),
+    ];
 
-  const billResults: Result[] = bills.slice(0, 40).map((b) => ({
-    id: b.id,
-    label: b.title,
-    sub: `${b.id} · ${TYPE_LABEL[b.type]} · ${ministryShort(b.ministryId)}`,
-    group: "Bills",
-    href: `/bills/${b.id}`,
-    icon: <ScrollText size={15} />,
-  }));
+    const billResults: Result[] = bills.slice(0, 40).map((b) => ({
+      id: b.id,
+      label: b.title,
+      sub: `${b.id} · ${TYPE_LABEL[b.type]} · ${ministryShort(b.ministryId)}`,
+      group: "Bills",
+      href: `/bills/${b.id}`,
+      icon: <ScrollText size={15} />,
+    }));
 
-  const actions: Result[] = [
-    {
-      id: "act-theme",
-      label: theme === "dark" ? "Switch to light mode" : "Switch to dark mode",
-      sub: "Appearance",
-      group: "Actions",
-      action: "theme",
-      icon: theme === "dark" ? <Sun size={15} /> : <Moon size={15} />,
-    },
-  ];
+    const actions: Result[] = [
+      {
+        id: "act-theme",
+        label: theme === "dark" ? "Switch to light mode" : "Switch to dark mode",
+        sub: "Appearance",
+        group: "Actions",
+        action: "theme",
+        icon: theme === "dark" ? <Sun size={15} /> : <Moon size={15} />,
+      },
+    ];
 
-  const q = query.trim().toLowerCase();
-  const all = [...pages, ...billResults, ...actions];
-  const filtered = q
-    ? all
-        .filter((r) => `${r.label} ${r.sub}`.toLowerCase().includes(q))
-        .slice(0, 9)
-    : [...pages.slice(0, 5), ...billResults.slice(0, 3), ...actions];
+    const q = query.trim().toLowerCase();
+    if (!q) return [...pages.slice(0, 5), ...billResults.slice(0, 3), ...actions];
+    return [...pages, ...billResults, ...actions]
+      .filter((r) => `${r.label} ${r.sub}`.toLowerCase().includes(q))
+      .slice(0, 9);
+  }, [query, bills, role, theme]);
 
   React.useEffect(() => {
     if (commandOpen) {

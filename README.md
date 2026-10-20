@@ -106,6 +106,8 @@ npm run dev        # http://localhost:3000
 npm run build      # production build
 npm start          # serve the production build
 npm run typecheck  # tsc --noEmit
+npm run lint       # ESLint (next/core-web-vitals)
+npm test           # Vitest domain suite (27 tests)
 ```
 
 Node 20.9+ required. The dev server binds to `0.0.0.0` so it can be previewed through a proxied environment.
@@ -153,6 +155,9 @@ src/
 - Colour is never the only signal — badges carry text and icons
 - Print stylesheet produces a clean legislative brief (chrome hidden, cards unshadowed)
 - TypeScript strict, zero unused code, production build verified
+- Animated KPI counters respect `prefers-reduced-motion`
+- `npm run lint` and `npx tsc --noEmit` report zero warnings/errors
+- `npm audit --omit=dev` reports zero vulnerabilities
 
 ---
 

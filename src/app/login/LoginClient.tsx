@@ -57,6 +57,25 @@ export function LoginClient() {
   const [phrase, setPhrase] = React.useState(0);
   const [resendIn, setResendIn] = React.useState(0);
   const otpRefs = React.useRef<(HTMLInputElement | null)[]>([]);
+  const roleMenuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!rolePickerOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (roleMenuRef.current && !roleMenuRef.current.contains(e.target as Node)) {
+        setRolePickerOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setRolePickerOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [rolePickerOpen]);
 
   React.useEffect(() => {
     const t = window.setInterval(() => setPhrase((p) => (p + 1) % ROTATING.length), 3800);
@@ -365,7 +384,7 @@ export function LoginClient() {
 
                   <form onSubmit={submitCredentials} className="space-y-3.5">
                     {/* role selector */}
-                    <div className="relative">
+                    <div className="relative" ref={roleMenuRef}>
                       <p className="mb-1.5 text-[11px] font-medium text-ink-2">Sign in as</p>
                       <button
                         type="button"

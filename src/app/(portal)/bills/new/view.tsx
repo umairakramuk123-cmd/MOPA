@@ -30,7 +30,7 @@ import {
 const STEPS = ["Category", "Particulars", "Document", "Review"] as const;
 
 export function RegisterBillView() {
-  const { registerBill, bills, session } = useStore();
+  const { registerBill, bills, session, addDocument } = useStore();
   const role = session.role;
 
   const [step, setStep] = React.useState(0);
@@ -101,6 +101,15 @@ export function RegisterBillView() {
       setErrors({ duplicate: `Duplicate blocked. Existing record: ${result.duplicate?.id}` });
       setStep(1);
       return;
+    }
+    if (result.id && fileName) {
+      addDocument({
+        name: fileName,
+        type: "Bill Copy",
+        billId: result.id,
+        size: `${(0.9 + (fileName.length % 20) / 10).toFixed(1)} MB`,
+        classification: "public",
+      });
     }
     setCreated(result.id ?? null);
   };
