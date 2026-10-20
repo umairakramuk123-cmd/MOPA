@@ -4,6 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="color-scheme" content="light" />
+<meta name="theme-color" content="#047857" />
+<meta name="robots" content="noindex,nofollow" />
 <title>MoPA · Legislative Monitoring Dashboard</title>
 <meta name="description" content="Ministry of Parliamentary Affairs — Legislative Monitoring Dashboard. A single-file, self-contained portal covering bills, stage tracking, committees, documents, alerts, reports and role-based access." />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23047857'/%3E%3Cstop offset='1' stop-color='%231d4ed8'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Cpath d='M14 46h36M19 46V27m7 19V27m5 19V27m7 19V27m5 19V27M12 25l20-11 20 11z' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
@@ -28,7 +30,7 @@
   --muted-2:#647a72;
   --line:rgba(9,66,52,.10);
   --line-2:rgba(9,66,52,.17);
-  --green:#0b8f63;
+  --green:#047857;
   --green-2:#10b981;
   --emerald:#047857;
   --teal:#0d9488;
@@ -494,7 +496,8 @@ table.tbl tbody tr:last-child td{border-bottom:0}
 .pager button.on{background:var(--grad);border-color:transparent;color:#fff}
 .pager button:disabled{opacity:.4;cursor:not-allowed}
 .progress{height:5px;border-radius:99px;background:rgba(9,66,52,.09);overflow:hidden;min-width:56px}
-.progress > span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#10b981,#2563eb)}
+.progress > span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#10b981,#2563eb);transform-origin:left;animation:grow .75s cubic-bezier(.22,1,.36,1) both}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 .progress.amber > span{background:linear-gradient(90deg,#f59e0b,#f97316)}
 .progress.red > span{background:linear-gradient(90deg,#ef4444,#f43f5e)}
 .progress.blue > span{background:linear-gradient(90deg,#2563eb,#38bdf8)}
@@ -1579,10 +1582,14 @@ function progress(pct, tone) {
   return '<span class="progress ' + (tone || "") + '" style="display:block"><span style="width:' + Math.max(3, Math.min(100, pct)) + '%"></span></span>';
 }
 function kpiCard(o) {
+  const numeric = typeof o.value === "number" || /^\d+$/.test(String(o.value));
+  const valueHtml = numeric
+    ? '<span data-count="' + esc(String(o.value)) + '">' + esc(String(o.value)) + "</span>"
+    : esc(String(o.value));
   return '<article class="kpi ' + o.tone + '">' +
     '<div class="kpi-top"><span class="kpi-label">' + esc(o.label) + '</span>' +
     '<span class="kpi-ico">' + ic(o.icon, 16) + "</span></div>" +
-    '<div><div class="kpi-val">' + esc(o.value) + (o.unit ? "<small>" + esc(o.unit) + "</small>" : "") + "</div>" +
+    '<div><div class="kpi-val">' + valueHtml + (o.unit ? "<small>" + esc(o.unit) + "</small>" : "") + "</div>" +
     '<div class="kpi-delta">' + ic(o.trend === "down" ? "arrowDown" : "upRight", 12) + esc(o.delta) + "</div></div>" +
     '<svg class="kpi-spark" viewBox="0 0 78 26" preserveAspectRatio="none"><polyline points="0 20 10 18 20 21 30 14 40 16 50 9 60 12 70 6 78 8"/></svg>' +
     "</article>";
@@ -1996,7 +2003,7 @@ function viewTracking() {
 
 /* ---------------- committees ---------------- */
 function committeeBills() {
-  return scopedBills().filter((b) => b.committeeDueAt || isCommitteeStage(b))
+  return scopedBills().filter(isCommitteeStage)
     .sort((a, b) => new Date(a.committeeDueAt || a.stageEnteredAt) - new Date(b.committeeDueAt || b.stageEnteredAt));
 }
 function viewCommittees() {
@@ -2049,7 +2056,10 @@ function viewCommittees() {
           '<div class="legend-row"><span class="legend-swatch" style="background:#ef4444"></span>Overdue<b>' + overdue + "</b></div>" +
         "</div>" +
         '<div class="kv" style="margin-top:6px"><span>Reports presented</span><b>' + reporting + "</b></div>" +
-        '<div class="kv"><span>Average clock used</span><b>' + (rows.length ? Math.round(rows.reduce((s, b) => s + daysBetween(b.stageEnteredAt), 0) / rows.length) : 0) + "%</b></div>" +
+        '<div class="kv"><span>Average clock used</span><b>' + (rows.length ? Math.round(rows.reduce((sum, b) => {
+          const limit = b.house === "Senate" ? 60 : 30;
+          return sum + Math.min(100, (daysBetween(b.stageEnteredAt) / limit) * 100);
+        }, 0) / rows.length) : 0) + "%</b></div>" +
       "</section>" +
     "</div></div>";
 }
@@ -2299,6 +2309,31 @@ function viewReports() {
 }
 
 /* ---------------- ministries ---------------- */
+function filteredMinistries() {
+  const stats = ministryStats(scopedBills());
+  const q = state.filters.ministryQ.trim().toLowerCase();
+  return (role().scope === "ministry" ? stats.filter((m) => m.id === user().ministryId) : stats)
+    .filter((m) => !q || (m.name + " " + m.code + " " + m.focalPerson).toLowerCase().includes(q));
+}
+function ministryRowsHtml() {
+  const list = filteredMinistries();
+  if (!list.length) return '<tr><td colspan="9">' + emptyState("No divisions found", "Clear the search to see all divisions.") + "</td></tr>";
+  return list.map((m) => '<tr data-act="ministry-bills" data-id="' + esc(m.id) + '">' +
+    '<td><div class="bill-cell"><span class="bill-glyph">' + ic("building", 14) + '</span><div><div class="bill-title">' + esc(m.name) + '</div><div class="bill-id">' + esc(m.contact) + "</div></div></div></td>" +
+    '<td><span class="badge b-slate">' + esc(m.code) + "</span></td>" +
+    '<td class="cell-muted">' + esc(m.focalPerson) + "</td>" +
+    '<td class="cell-strong">' + m.total + "</td>" +
+    '<td class="cell-muted">' + m.active + "</td>" +
+    '<td><span class="badge b-green">' + m.assented + "</span></td>" +
+    "<td>" + (m.overdue ? '<span class="badge b-red">' + m.overdue + "</span>" : '<span class="muted">—</span>') + "</td>" +
+    "<td>" + (m.pendingResponses ? '<span class="badge b-amber">' + m.pendingResponses + "</span>" : '<span class="muted">0</span>') + "</td>" +
+    '<td class="right"><span class="link">View bills ' + ic("right", 11) + "</span></td></tr>").join("");
+}
+function refreshMinistries() {
+  const body = document.getElementById("ministry-rows");
+  if (body) body.innerHTML = ministryRowsHtml();
+  makeActionable();
+}
 function viewMinistries() {
   const bills = scopedBills();
   const stats = ministryStats(bills);
@@ -2338,18 +2373,8 @@ function viewMinistries() {
         "</div>" +
       "</section>" +
       '<section class="card c12 table-card" style="padding:0">' +
-        '<div class="table-wrap"><table class="tbl"><thead><tr><th>Division</th><th>Code</th><th>Focal person</th><th>Bills</th><th>Active</th><th>Assented</th><th>Overdue</th><th>Pending responses</th><th></th></tr></thead><tbody>' +
-        (list.length ? list.map((m) => '<tr data-act="ministry-bills" data-id="' + esc(m.id) + '">' +
-          '<td><div class="bill-cell"><span class="bill-glyph">' + ic("building", 14) + '</span><div><div class="bill-title">' + esc(m.name) + '</div><div class="bill-id">' + esc(m.contact) + "</div></div></div></td>" +
-          '<td><span class="badge b-slate">' + esc(m.code) + "</span></td>" +
-          '<td class="cell-muted">' + esc(m.focalPerson) + "</td>" +
-          '<td class="cell-strong">' + m.total + "</td>" +
-          '<td class="cell-muted">' + m.active + "</td>" +
-          '<td><span class="badge b-green">' + m.assented + "</span></td>" +
-          "<td>" + (m.overdue ? '<span class="badge b-red">' + m.overdue + "</span>" : '<span class="muted">—</span>') + "</td>" +
-          "<td>" + (m.pendingResponses ? '<span class="badge b-amber">' + m.pendingResponses + "</span>" : '<span class="muted">0</span>') + "</td>" +
-          '<td class="right"><span class="link">View bills ' + ic("right", 11) + "</span></td></tr>").join("") :
-          '<tr><td colspan="9">' + emptyState("No divisions found", "Clear the search to see all divisions.") + "</td></tr>") +
+        '<div class="table-wrap"><table class="tbl"><thead><tr><th>Division</th><th>Code</th><th>Focal person</th><th>Bills</th><th>Active</th><th>Assented</th><th>Overdue</th><th>Pending responses</th><th></th></tr></thead><tbody id="ministry-rows">' +
+        ministryRowsHtml() +
         "</tbody></table></div>" +
       "</section>" +
     "</div></div>";
@@ -2797,6 +2822,7 @@ function renderTopbar() {
   document.getElementById("dateText").textContent = fmtDate(SYSTEM);
   const openAlerts = visibleAlerts().filter((a) => a.status === "open").length;
   document.getElementById("bellDot").style.display = openAlerts ? "block" : "none";
+  document.getElementById("bellBtn").setAttribute("aria-label", openAlerts + " open alerts");
   const menuHost = document.getElementById("userWrap");
   const existing = document.getElementById("roleMenu");
   if (existing) existing.remove();
@@ -2828,12 +2854,36 @@ function render() {
   if (mount) mount();
   document.getElementById("searchPop").hidden = true;
   makeActionable();
+  animateKpis();
+}
+
+function animateKpis() {
+  const nodes = [...document.querySelectorAll("#view [data-count]")];
+  if (!nodes.length) return;
+  const reduce = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  nodes.forEach((el) => {
+    const target = parseInt(el.getAttribute("data-count"), 10) || 0;
+    if (reduce || target === 0) { el.textContent = String(target); return; }
+    el.textContent = "0";
+    const start = (typeof performance !== "undefined" ? performance.now() : Date.now());
+    const duration = 700;
+    const tick = (now) => {
+      const p = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = String(Math.round(target * eased));
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
 }
 
 function makeActionable() {
   document.querySelectorAll("#view [data-act], #topbar [data-act], #drawer [data-act]").forEach((el) => {
     if (!el.matches("button,a,input,select,textarea") && !el.hasAttribute("tabindex")) {
       el.setAttribute("tabindex", "0");
+    }
+    if ((el.tagName === "DIV" || el.tagName === "SPAN") && !el.getAttribute("role")) {
+      el.setAttribute("role", "button");
     }
   });
 }
@@ -2962,7 +3012,7 @@ function renderDrawer() {
         '<div class="meta"><span>Current stage</span><b>' + esc(stageMeta(b.stage).label) + "</b></div>" +
         '<div class="meta"><span>Registered</span><b>' + fmtDate(b.registeredAt) + "</b></div>" +
         '<div class="meta"><span>Days at stage</span><b>' + stageAge(b) + " days</b></div>" +
-        '<div class="meta"><span>Documents</span><b>' + b.documentCount + " files</b></div>" +
+        '<div class="meta"><span>Documents</span><b>' + docList.length + " files</b></div>" +
         '<div class="meta"><span>Priority</span><b style="text-transform:capitalize">' + esc(b.priority) + "</b></div>" +
       "</div>" +
       '<div><div class="between" style="margin-bottom:4px"><span class="tiny muted">Workflow progress</span><span class="tiny" style="font-weight:750">' + (idx + 1) + " / " + stageList.length + "</span></div>" + progress(stageProgress(b)) + "</div>" +
@@ -2977,7 +3027,7 @@ function renderDrawer() {
       (can("legal.review") ? '<button class="btn ghost sm" data-act="legal" data-id="' + esc(b.id) + '">' + ic("shield", 12) + " Legal review</button>" : "") +
       (can("od.manage") && ["pre-introduction", "pre-admissibility", "admitted", "order-of-the-day", "js-reference", "js-od"].indexOf(b.stage) !== -1 ?
         '<button class="btn ghost sm" data-act="od" data-id="' + esc(b.id) + '">' + ic("calendar", 12) + " Issue OD</button>" : "") +
-      '<span class="tiny muted" style="margin-left:auto">' + (b.documentCount) + " documents · " + esc(b.id) + "</span>" +
+      '<span class="tiny muted" style="margin-left:auto">' + docList.length + " documents · " + esc(b.id) + "</span>" +
     "</div>";
   host.classList.add("on");
   document.getElementById("scrim").classList.add("on");
@@ -3469,7 +3519,7 @@ function renderLoginRoles() {
   const host = document.getElementById("loginRoles");
   host.innerHTML = DATA.roleOrder.map((id) => {
     const r = DATA.roles[id];
-    return '<button type="button" class="role-tile ' + (state.loginRole === id ? "on" : "") + '" data-act="login-role" data-role="' + id + '">' +
+    return '<button type="button" class="role-tile ' + (state.loginRole === id ? "on" : "") + '" aria-pressed="' + (state.loginRole === id) + '" data-act="login-role" data-role="' + id + '">' +
       '<span class="ico">' + ic(ROLE_ICON[id] || "user", 14) + "</span>" +
       "<span><b>" + esc(r.short) + "</b><span>" + esc(r.scope === "ministry" ? "Division user" : r.org) + "</span></span></button>";
   }).join("");
@@ -3545,7 +3595,7 @@ function setField(name, value) {
   if (name === "docCls") { f.docCls = value; f.docPage = 0; refreshDocs(); return true; }
   if (name === "auditQ") { f.auditQ = value; return false; }
   if (name === "auditAction") { f.auditAction = value; return false; }
-  if (name === "ministryQ") { f.ministryQ = value; return false; }
+  if (name === "ministryQ") { f.ministryQ = value; refreshMinistries(); return true; }
   return true;
 }
 function rerenderPreservingFocus() {
@@ -3602,7 +3652,7 @@ function actionFrom(el) {
     }
     case "invite-user": openInviteModal(); return true;
     case "user-detail": openUserModal(id); return true;
-    case "switch-role-menu": state.menu = true; renderTopbar(); setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 0); return true;
+    case "switch-role-menu": closeSidebar(); state.menu = true; renderTopbar(); return true;
     case "switch-role": {
       const rid = target.getAttribute("data-role");
       state.role = rid;
@@ -3742,12 +3792,25 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   if (e.key === "Escape") {
-    closeMenu();
-    closeModal();
-    closeDrawer();
-    closeSidebar();
+    const modalOpen = document.getElementById("modal").classList.contains("on");
+    const drawerOpen = document.getElementById("drawer").classList.contains("on");
     const pop = document.getElementById("searchPop");
     if (pop) pop.hidden = true;
+    if (modalOpen) { closeModal(); return; }
+    if (drawerOpen) { closeDrawer(); return; }
+    closeMenu();
+    closeSidebar();
+  }
+  if (e.key === "Tab") {
+    const modal = document.getElementById("modal");
+    if (modal.classList.contains("on")) {
+      const focusables = [...modal.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href],[tabindex="0"]')];
+      if (focusables.length) {
+        const first = focusables[0], last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    }
   }
   if (e.target && e.target.classList && e.target.classList.contains("otp-box")) {
     const boxes = [...document.querySelectorAll(".otp-box")];
