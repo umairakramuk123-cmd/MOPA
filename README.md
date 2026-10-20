@@ -126,6 +126,11 @@ Node 20.9+ required. The dev server binds to `0.0.0.0` so it can be previewed th
 - Every text size between 13px and 16px; charts re-render per role and view
 - In-memory edits (register bill, stage update, OD, documents, stance, legal review, approvals, alerts)
 - Deep-linkable views (`#bills`, `#committees`, `#documents` …) with browser back/forward, permission-checked on entry
+- Sortable registry (seven columns, `aria-sort` announced) and in-place division search that keeps focus
+- Command palette on `⌘K` across bills, documents, divisions, reports and pages, with arrow-key navigation
+- All fifteen statutory reports open a live preview built from the current records, exportable as CSV or via print/PDF
+- Settings that actually apply: alert rules mute notifications everywhere, compact density, OTP on/off, idle logout, IP-range chip
+- Session reset from Settings restores the seeded dataset without signing out
 - Single file, no cookies, no storage: closing the tab discards the session
 
 Open it directly in a browser, or run the dev server and visit `http://localhost:3000/mopa-portal.html`.
@@ -167,7 +172,10 @@ src/
 - Semantic landmarks, skip link, labelled controls, `aria-current` navigation
 - Visible focus rings on every interactive element
 - Keyboard: `⌘K` palette with arrow/enter navigation, `Esc` to close overlays, paste support in OTP
-- `prefers-reduced-motion` disables all animation
+- Focus is trapped inside open modals and drawers, and restored to the page on close
+- Charts expose an accessible text summary (`role="img"` with a generated label)
+- Live region announces view changes and table sorting to screen readers
+- `prefers-reduced-motion` disables all animation, including chart and KPI motion
 - Colour is never the only signal — badges carry text and icons
 - Print stylesheet produces a clean legislative brief (chrome hidden, cards unshadowed)
 - TypeScript strict, zero unused code, production build verified
