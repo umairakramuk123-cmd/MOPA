@@ -102,12 +102,13 @@ No component library is used — every primitive in `src/components/ui` is purpo
 
 ```bash
 npm install
-npm run dev        # http://localhost:3000
-npm run build      # production build
-npm start          # serve the production build
-npm run typecheck  # tsc --noEmit
-npm run lint       # ESLint CLI (eslint-config-next / core-web-vitals)
-npm test           # Vitest domain suite (29 tests)
+npm run dev            # http://localhost:3000
+npm run build          # production build
+npm start              # serve the production build
+npm run typecheck      # tsc --noEmit
+npm run lint           # ESLint CLI (eslint-config-next / core-web-vitals)
+npm test               # Vitest domain suite (29 tests)
+npm run verify:portal  # jsdom end-to-end pass over the single-file portal
 ```
 
 Node 20.9+ required. The dev server binds to `0.0.0.0` so it can be previewed through a proxied environment.
@@ -134,6 +135,14 @@ Node 20.9+ required. The dev server binds to `0.0.0.0` so it can be previewed th
 - Single file, no cookies, no storage: closing the tab discards the session
 
 Open it directly in a browser, or run the dev server and visit `http://localhost:3000/mopa-portal.html`.
+
+### Verifying the single file
+
+```bash
+npm run verify:portal
+```
+
+Boots `public/mopa-portal.html` in jsdom and drives it like a user — sign-in and OTP, all fifteen views, sortable registry, command palette, every one of the fifteen reports (preview, CSV, print sheet), alert-rule settings, dataset reset, focus traps, an accessibility sweep over every view, cross-view number consistency, and all seven role scopes. 25 checks, exits non-zero on the first regression.
 
 ---
 
@@ -163,6 +172,10 @@ src/
    ├─ data.ts metrics.ts                  # deterministic dataset + computations
    ├─ store.tsx session.ts                # client store, role scoping, auth cookie
    ├─ format.ts nav.ts help-content.ts    # utilities, navigation, glossary
+scripts/
+└─ verify-portal/                        # jsdom end-to-end pass over the single file
+   ├─ lib.mjs                            # boot helper (Apex stub, stubs, captures)
+   └─ verify.mjs                         # 25 checks: views, a11y, reports, roles
 ```
 
 ---

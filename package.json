@@ -1,7 +1,7 @@
 {
   "name": "mopa-legislative-portal",
   "version": "1.2.0",
-  "description": "MoPA Legislative Monitoring Dashboard — a production-grade portal for the Ministry of Parliamentary Affairs, implemented by NITB.",
+  "description": "MoPA Legislative Monitoring Dashboard \u2014 a production-grade portal for the Ministry of Parliamentary Affairs, implemented by NITB.",
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
     "build": "next build",
@@ -9,7 +9,8 @@
     "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "verify:portal": "node scripts/verify-portal/verify.mjs"
   },
   "repository": {
     "type": "git",
@@ -49,6 +50,7 @@
     "@types/react-dom": "^19.3.0",
     "eslint": "^8.57.1",
     "eslint-config-next": "^15.5.28",
+    "jsdom": "^26.1.0",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3",
     "vitest": "^5.0.5"
