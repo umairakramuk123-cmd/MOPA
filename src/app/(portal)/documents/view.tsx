@@ -79,6 +79,12 @@ export function DocumentsView() {
 
   const totalMb = documents.reduce((sum, d) => sum + parseFloat(d.size), 0);
   const classified = documents.filter((d) => d.classification === "classified").length;
+  const requiredSlots = bills.length * 3;
+  const filledSlots = bills.reduce(
+    (sum, b) => sum + Math.min(3, documents.filter((d) => d.billId === b.id).length),
+    0,
+  );
+  const coverage = requiredSlots ? Math.round((filledSlots / requiredSlots) * 100) : 0;
 
   return (
     <div className="space-y-4">
@@ -110,7 +116,7 @@ export function DocumentsView() {
           { label: "Documents", value: documents.length, tone: "var(--ink)" },
           { label: "Archive size", value: `${totalMb.toFixed(0)} MB`, tone: "var(--chart-4)" },
           { label: "Classified", value: classified, tone: "var(--danger)" },
-          { label: "Coverage", value: "94%", hint: "required slots", tone: "var(--success)" },
+          { label: "Coverage", value: `${coverage}%`, hint: "required slots", tone: "var(--success)" },
         ]}
       />
 

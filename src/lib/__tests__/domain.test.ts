@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BILLS, MINISTRIES, REPORTS, USERS } from "../data";
+import { BILLS, DOCUMENTS, MINISTRIES, REPORTS, USERS } from "../data";
 import { PERMISSION_GROUPS, ROLES, ROLE_ORDER, can, permissionLabel } from "../roles";
 import { COMMITTEE_LIMITS, STAGE_LIBRARY, TRANSMISSION_LIMIT, stagesFor } from "../workflows";
 import {
@@ -198,6 +198,21 @@ describe("dashboard metrics", () => {
     expect(ageingBuckets(BILLS).reduce((sum, b) => sum + b.NA + b.Senate + b.Joint, 0)).toBe(
       BILLS.length,
     );
+  });
+
+  it("links every repository document to a registered bill", () => {
+    const ids = new Set(BILLS.map((b) => b.id));
+    for (const doc of DOCUMENTS) {
+      expect(ids.has(doc.billId)).toBe(true);
+    }
+    expect(new Set(DOCUMENTS.map((d) => d.id)).size).toBe(DOCUMENTS.length);
+  });
+
+  it("keeps each bill's document counter aligned with the repository", () => {
+    for (const bill of BILLS) {
+      const filed = DOCUMENTS.filter((d) => d.billId === bill.id).length;
+      expect(bill.documentCount).toBe(filed);
+    }
   });
 
   it("derives the overdue count from the same deadline rule as the UI", () => {

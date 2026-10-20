@@ -558,23 +558,41 @@ const DOC_NAMES: Record<BillDocument["type"], string> = {
 
 export const DOCUMENTS: BillDocument[] = (() => {
   const types = Object.keys(DOC_NAMES) as BillDocument["type"][];
-  return RAW_BILLS.slice(0, 9).flatMap((bill, bi) =>
-    types.slice(0, bi % 3 === 0 ? 4 : 3).map((type, ti) => {
-      const idx = bi * 3 + ti;
+  let idx = 0;
+  return RAW_BILLS.flatMap((bill, bi) => {
+    const stageIndex = Math.max(
+      0,
+      stagesFor(bill.type).findIndex((s) => s.key === bill.stage),
+    );
+    // Advanced bills accumulate more paper: bill copy, OD, then reports,
+    // responses, transmission copies and finally assent/gazette records.
+    const count = Math.min(types.length, 2 + Math.floor(stageIndex / 2));
+    return types.slice(0, count).map((type) => {
+      const n = idx++;
       return {
-        id: `DOC-${8800 + idx}`,
+        id: `DOC-${8800 + n}`,
         name: `${DOC_NAMES[type]} — ${bill.shortTitle}`,
         type,
         billId: bill.id,
-        size: `${(0.8 + ((idx * 7) % 42) / 10).toFixed(1)} MB`,
-        uploadedAt: isoDaysAgo(4 + idx * 2, 10 + (idx % 6), 20),
-        uploadedBy: idx % 3 === 0 ? "Ali Hassan" : idx % 3 === 1 ? "Farah Nadeem" : "Nida Fatima",
-        classification: idx % 11 === 0 ? "classified" : idx % 4 === 0 ? "restricted" : "public",
-        version: 1 + (idx % 3),
+        size: `${(0.8 + ((n * 7) % 42) / 10).toFixed(1)} MB`,
+        uploadedAt: isoDaysAgo(3 + (n % 120), 10 + (n % 6), 20 + (n % 35)),
+        uploadedBy: n % 3 === 0 ? "Ali Hassan" : n % 3 === 1 ? "Farah Nadeem" : "Nida Fatima",
+        classification: n % 11 === 0 ? "classified" : n % 4 === 0 ? "restricted" : "public",
+        version: 1 + (n % 3),
       } satisfies BillDocument;
-    }),
-  );
+    });
+  });
 })();
+
+/* The bill record carries a denormalised document counter (BRD §8); keep it
+   aligned with the repository seed so the registry and the repository agree. */
+const documentTotals = new Map<string, number>();
+for (const doc of DOCUMENTS) {
+  documentTotals.set(doc.billId, (documentTotals.get(doc.billId) ?? 0) + 1);
+}
+for (const bill of BILLS) {
+  bill.documentCount = documentTotals.get(bill.id) ?? 0;
+}
 
 /* ------------------------------------------------------------------ */
 /*  Approvals                                                          */
