@@ -1345,7 +1345,8 @@ function defaultFilters() {
     billQ: "", billType: "all", billStage: "all", billMinistry: "all", billPage: 0,
     billSort: "registeredAt", billDir: "desc",
     docQ: "", docType: "all", docCls: "all", docPage: 0, docSort: "uploaded", docDir: "desc",
-    userSort: "name", userDir: "asc",
+    userSort: "name", userDir: "asc", auditPage: 0,
+    minSort: "total", minDir: "desc",
     alertStatus: "open", auditAction: "all", auditQ: "",
     trackingType: "official", reportCat: "all", ministryQ: "",
   };
@@ -1470,6 +1471,13 @@ function stageProgress(bill) {
 }
 function stageAge(bill) { return Math.max(0, daysBetween(bill.stageEnteredAt)); }
 function billAge(bill) { return Math.max(0, daysBetween(bill.registeredAt)); }
+/* Older records only carry the transmission event in their history, so the
+   date is derived the same way everywhere it is shown or measured. */
+function transmittedAt(bill) {
+  if (bill.transmissionAt) return bill.transmissionAt;
+  const ev = bill.history.filter((h) => h.stage === "transmitted").sort((a, b) => new Date(a.at) - new Date(b.at))[0];
+  return ev ? ev.at : null;
+}
 /* A committee clock only runs while the bill sits in a committee stage.
    Historical bills keep their old date, so every view reads it through here. */
 function activeCommitteeDue(bill) {
@@ -2103,6 +2111,24 @@ function openShortcuts() {
     "sm"
   );
 }
+function auditPagerHtml(total) {
+  const perPage = 15;
+  const pages = Math.max(1, Math.ceil(total / perPage));
+  const page = Math.min(state.filters.auditPage || 0, pages - 1);
+  const start = total ? page * perPage + 1 : 0;
+  const end = Math.min(total, (page + 1) * perPage);
+  const from = Math.max(0, Math.min(page - 2, pages - 5));
+  const to = Math.min(pages, from + 5);
+  let buttons = "";
+  for (let i = from; i < to; i++) {
+    buttons += '<button data-act="audit-page" data-page="' + i + '" class="' + (i === page ? "on" : "") + '">' + (i + 1) + "</button>";
+  }
+  return '<div class="table-foot"><span>Showing <b>' + start + "–" + end + "</b> of <b>" + total +
+    '</b> entries</span><div class="row gap-6" style="align-items:center">' +
+    (pages > 1 ? '<div class="pager"><button data-act="audit-page" data-page="' + (page - 1) + '" ' + (page === 0 ? "disabled" : "") + ' aria-label="Previous page">‹</button>' +
+      buttons + '<button data-act="audit-page" data-page="' + (page + 1) + '" ' + (page >= pages - 1 ? "disabled" : "") + ' aria-label="Next page">›</button></div>' : "") +
+    "<span class='muted'>Immutable · append-only</span></div></div>";
+}
 function announce(text) {
   const live = document.getElementById("srStatus");
   if (live) live.textContent = text;
@@ -2290,7 +2316,7 @@ function viewCommittees() {
         '<div class="card-head" style="padding:12px 13px 0;margin-bottom:6px"><div><div class="card-title">Committee register</div><div class="card-sub">Ordered by the nearest statutory deadline</div></div>' +
         badge(overdue + " overdue", overdue ? "b-red" : "b-green") + "</div>" +
         '<div class="table-wrap"><table class="tbl"><thead><tr><th>Bill</th><th>House</th><th>Committee</th><th>Referred</th><th>Clock</th><th>Status</th><th></th></tr></thead><tbody>' +
-        (rows.length ? rows.slice(0, 12).map((b) => {
+        (rows.length ? rows.map((b) => {
           const st = deadlineState(b);
           const limit = b.house === "Senate" ? 60 : 30;
           const elapsed = Math.max(0, daysBetween(b.stageEnteredAt));
@@ -2604,8 +2630,36 @@ function filteredMinistries() {
   return (role().scope === "ministry" ? stats.filter((m) => m.id === user().ministryId) : stats)
     .filter((m) => !q || (m.name + " " + m.code + " " + m.focalPerson).toLowerCase().includes(q));
 }
+const MINISTRY_COLUMNS = [
+  { key: "name", label: "Division" }, { key: "code", label: "Code" },
+  { key: "focal", label: "Focal person" }, { key: "total", label: "Bills" },
+  { key: "active", label: "Active" }, { key: "assented", label: "Assented" },
+  { key: "overdue", label: "Overdue" }, { key: "pending", label: "Pending responses" },
+];
+function ministrySortValue(m, key) {
+  switch (key) {
+    case "name": return m.name.toLowerCase();
+    case "code": return String(m.code).toLowerCase();
+    case "focal": return String(m.focalPerson || "").toLowerCase();
+    case "active": return m.active;
+    case "assented": return m.assented;
+    case "overdue": return m.overdue;
+    case "pending": return m.pendingResponses;
+    default: return m.total;
+  }
+}
+function sortedMinistries() {
+  const key = state.filters.minSort || "total";
+  const dir = state.filters.minDir === "asc" ? 1 : -1;
+  return filteredMinistries().slice().sort((a, b) => {
+    const x = ministrySortValue(a, key), y = ministrySortValue(b, key);
+    if (typeof x === "string") return x.localeCompare(y) * dir;
+    if (x === y) return a.name.localeCompare(b.name);
+    return (x - y) * dir;
+  });
+}
 function ministryRowsHtml() {
-  const list = filteredMinistries();
+  const list = sortedMinistries();
   if (!list.length) return '<tr><td colspan="9">' + emptyState("No divisions found", "Clear the search to see all divisions.") + "</td></tr>";
   return list.map((m) => '<tr data-act="ministry-bills" data-id="' + esc(m.id) + '">' +
     '<td><div class="bill-cell"><span class="bill-glyph">' + ic("building", 14) + '</span><div><div class="bill-title">' + esc(m.name) + '</div><div class="bill-id">' + esc(m.contact) + "</div></div></div></td>" +
@@ -2621,6 +2675,11 @@ function ministryRowsHtml() {
 function refreshMinistries() {
   const body = document.getElementById("ministry-rows");
   if (body) body.innerHTML = ministryRowsHtml();
+  const head = document.querySelector("#view thead");
+  if (head) {
+    const current = head.querySelector("tr");
+    if (current) current.innerHTML = sortHead(MINISTRY_COLUMNS, state.filters.minSort, state.filters.minDir, "ministry-sort") + '<th aria-label="Actions"></th>';
+  }
   makeActionable();
 }
 function viewMinistries() {
@@ -2662,7 +2721,9 @@ function viewMinistries() {
         "</div>" +
       "</section>" +
       '<section class="card c12 table-card" style="padding:0">' +
-        '<div class="table-wrap"><table class="tbl"><thead><tr><th>Division</th><th>Code</th><th>Focal person</th><th>Bills</th><th>Active</th><th>Assented</th><th>Overdue</th><th>Pending responses</th><th></th></tr></thead><tbody id="ministry-rows">' +
+        '<div class="table-wrap"><table class="tbl"><thead><tr>' +
+        sortHead(MINISTRY_COLUMNS, state.filters.minSort, state.filters.minDir, "ministry-sort") +
+        "<th aria-label=\"Actions\"></th></tr></thead><tbody id=\"ministry-rows\">" +
         ministryRowsHtml() +
         "</tbody></table></div>" +
       "</section>" +
@@ -2851,6 +2912,10 @@ function viewAudit() {
   const q = state.filters.auditQ.trim().toLowerCase();
   const list = state.audit.filter((a) => (state.filters.auditAction === "all" || a.action === state.filters.auditAction) &&
     (!q || (a.actor + " " + a.action + " " + a.entity + " " + a.entityId + " " + a.reason).toLowerCase().includes(q)));
+  const perPage = 15;
+  const pages = Math.max(1, Math.ceil(list.length / perPage));
+  const page = Math.min(state.filters.auditPage || 0, pages - 1);
+  const pageRows = list.slice(page * perPage, page * perPage + perPage);
 
   return '<div class="page">' +
     pageHead({
@@ -2872,7 +2937,7 @@ function viewAudit() {
         '<select class="input" data-field="auditAction" aria-label="Filter action" style="width:auto">' + actions.map((a) => '<option value="' + esc(a) + '" ' + (state.filters.auditAction === a ? "selected" : "") + ">" + (a === "all" ? "All actions" : esc(a)) + "</option>").join("") + "</select>" +
       "</div>" +
       '<div class="table-wrap"><table class="tbl"><thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Entity</th><th>Reason</th><th>IP</th></tr></thead><tbody>' +
-      (list.length ? list.slice(0, 30).map((a) => '<tr>' +
+      (pageRows.length ? pageRows.map((a) => '<tr>' +
         '<td class="cell-muted nowrap">' + fmtDateTime(a.at) + "</td>" +
         '<td><div class="row gap-6"><span class="avatar" style="width:24px;height:24px;border-radius:7px;font-size:13px">' + esc(initials(a.actor)) + "</span><div><div class=\"cell-strong\">" + esc(a.actor) + '</div><div class="bill-id">' + esc(DATA.roles[a.actorRole] ? DATA.roles[a.actorRole].short : a.actorRole) + "</div></div></div></td>" +
         "<td>" + badge(a.action, "b-blue") + "</td>" +
@@ -2881,7 +2946,7 @@ function viewAudit() {
         '<td class="cell-muted nowrap">' + esc(a.ip) + "</td></tr>").join("") :
         '<tr><td colspan="6">' + emptyState("No audit entries match", "Try a different action or search term.") + "</td></tr>") +
       "</tbody></table></div>" +
-      '<div class="table-foot"><span>Showing ' + Math.min(30, list.length) + " of " + list.length + " entries</span><span class='muted'>Immutable · append-only</span></div>" +
+      auditPagerHtml(list.length) +
     "</section></div>";
 }
 
@@ -3361,7 +3426,10 @@ function renderDrawer() {
         emptyState("No documents linked", "Upload the bill copy to start the record."));
   } else if (tab === "compliance") {
     const due = activeCommitteeDue(b) ? deadlineLabel(activeCommitteeDue(b)) : "Not in committee";
-    const trans = b.transmissionAt ? (daysBetween(b.transmissionAt) + " / 90 days used") : "Not transmitted";
+    const sent = transmittedAt(b);
+    const trans = sent
+      ? (daysBetween(sent) + " / 90 days used" + (daysBetween(sent) > 90 ? " · breached" : ""))
+      : "Not transmitted";
     const stance = { support: "Support", oppose: "Oppose", conditional: "Conditional", pending: "Pending" }[b.ministryStance] || "—";
     const story = [
       ["Article 74", b.article74 === "applicable" ? "Applicable" : b.article74 === "under-review" ? "Under review" : b.article74 === "not-applicable" ? "Not applicable" : "Not recorded", b.article74 === "not-applicable" ? "b-slate" : "b-amber"],
@@ -3862,10 +3930,10 @@ function reportDataset(r) {
           return [o, n, bills.length ? Math.round((n / bills.length) * 100) + "%" : "0%"];
         }));
     case "R-08": {
-      const list = bills.filter((b) => b.transmissionAt);
+      const list = bills.filter((b) => transmittedAt(b));
       return ds(["Bill ID", "Title", "Transmitted", "Days elapsed", "90-day limit", "Referral status"],
-        list.map((b) => [b.id, b.title, date(b.transmissionAt), days(b.transmissionAt),
-          days(b.transmissionAt) > 90 ? "Breached" : "Within limit",
+        list.map((b) => [b.id, b.title, date(transmittedAt(b)), days(transmittedAt(b)),
+          days(transmittedAt(b)) > 90 ? "Breached" : "Within limit",
           b.house === "Joint" ? "Joint Sitting" : "Receiving House"]));
     }
     case "R-09": {
@@ -4085,12 +4153,21 @@ function exportDocs() {
   const filtered = !!f.docQ.trim() || f.docType !== "all" || f.docCls !== "all";
   toast("Index exported", list.length + (filtered ? " filtered" : "") + " documents written to CSV.", "good");
 }
+function filteredAudit() {
+  const q = state.filters.auditQ.trim().toLowerCase();
+  return state.audit.filter((a) => (state.filters.auditAction === "all" || a.action === state.filters.auditAction) &&
+    (!q || (a.actor + " " + a.action + " " + a.entity + " " + a.entityId + " " + a.reason).toLowerCase().includes(q)));
+}
 function exportAudit() {
   if (!can("audit.view")) { toast("Restricted", "Your role cannot export the audit trail.", "bad"); return; }
   const rows = [["Event", "When", "Actor", "Role", "Action", "Entity", "Entity ID", "Reason", "IP"]];
-  state.audit.forEach((a) => rows.push([a.id, fmtDateTime(a.at), a.actor, a.actorRole, a.action, a.entity, a.entityId, a.reason, a.ip]));
+  const list = filteredAudit();
+  list.forEach((a) => rows.push([a.id, fmtDateTime(a.at), a.actor, a.actorRole, a.action, a.entity, a.entityId, a.reason, a.ip]));
   download("mopa-audit-trail.csv", csv(rows));
-  toast("Audit exported", state.audit.length + " entries written to CSV.", "good");
+  const filtered = !!state.filters.auditQ.trim() || state.filters.auditAction !== "all";
+  toast("Audit exported",
+    list.length + (filtered ? " filtered" : "") + " of " + state.audit.length + " entries written to CSV.",
+    "good");
 }
 
 /* ---------------- login ---------------- */
@@ -4260,8 +4337,8 @@ function setField(name, value) {
   if (name === "docQ") { f.docQ = value; f.docPage = 0; refreshDocs(); return true; }
   if (name === "docType") { f.docType = value; f.docPage = 0; refreshDocs(); return true; }
   if (name === "docCls") { f.docCls = value; f.docPage = 0; refreshDocs(); return true; }
-  if (name === "auditQ") { f.auditQ = value; return false; }
-  if (name === "auditAction") { f.auditAction = value; return false; }
+  if (name === "auditQ") { f.auditQ = value; f.auditPage = 0; return false; }
+  if (name === "auditAction") { f.auditAction = value; f.auditPage = 0; return false; }
   if (name === "ministryQ") { f.ministryQ = value; refreshMinistries(); return true; }
   return true;
 }
@@ -4328,6 +4405,12 @@ function actionFrom(el) {
       focusSort("bill-sort", key);
       return true;
     }
+    case "audit-page": {
+      state.filters.auditPage = Math.max(0, parseInt(target.getAttribute("data-page"), 10) || 0);
+      render();
+      announce("Audit trail page " + (state.filters.auditPage + 1) + ".");
+      return true;
+    }
     case "doc-page": state.filters.docPage = Math.max(0, parseInt(target.getAttribute("data-page"), 10) || 0); refreshDocs(); return true;
     case "doc-sort": {
       const key = target.getAttribute("data-key");
@@ -4353,6 +4436,17 @@ function actionFrom(el) {
       return true;
     }
     case "reset-bills": state.filters.billQ = ""; state.filters.billType = "all"; state.filters.billStage = "all"; state.filters.billMinistry = "all"; state.filters.billPage = 0; state.filters.billSort = "registeredAt"; state.filters.billDir = "desc"; render(); return true;
+    case "ministry-sort": {
+      const key = target.getAttribute("data-key");
+      const col = MINISTRY_COLUMNS.find((c) => c.key === key);
+      if (!col) return true;
+      const next = nextSort(state.filters.minSort, state.filters.minDir, key, key === "name" || key === "code" || key === "focal" ? "asc" : "desc");
+      state.filters.minSort = next.key; state.filters.minDir = next.dir;
+      refreshMinistries();
+      announce("Sorted by " + col.label + ", " + (next.dir === "asc" ? "ascending" : "descending") + ".");
+      focusSort("ministry-sort", key);
+      return true;
+    }
     case "ministry-bills": {
       const mid = target.getAttribute("data-id");
       state.filters.billMinistry = mid; state.filters.billPage = 0;

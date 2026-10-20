@@ -230,6 +230,20 @@ section('Registry');
     click('[data-act="reset-bills"]'); await sleep(200);
     return rows + ' filtered rows';
   });
+  await check('division and audit tables behave', async () => {
+    click('[data-nav="ministries"]'); await sleep(280);
+    assert($$('[data-act="ministry-sort"]').length === 8, 'division table lost its sortable headers');
+    click($('[data-act="ministry-sort"][data-key="overdue"]')); await sleep(250);
+    assert($('[data-act="ministry-sort"][data-key="overdue"]').closest('th').getAttribute('aria-sort') === 'descending', 'overdue sort');
+    click('[data-nav="audit"]'); await sleep(280);
+    assert($$('#view tbody tr').length === 15, 'audit should page fifteen rows at a time');
+    const pager = $$('[data-act="audit-page"]').filter((b) => /^\d+$/.test(b.textContent.trim()));
+    click(pager[pager.length - 1]); await sleep(250);
+    const foot = $('.table-foot').textContent;
+    const m = foot.match(/Showing (\d+)–(\d+) of (\d+)/);
+    assert(m && m[2] === m[3] && m[1] === '31', 'last audit page wrong: ' + foot);
+    return 'divisions 8 cols · audit 3 pages';
+  });
   await check('document and user tables sort too', async () => {
     click('[data-nav="documents"]'); await sleep(280);
     assert($$('[data-act="doc-sort"]').length === 7, 'documents lost its sortable headers');
@@ -304,6 +318,11 @@ section('Command palette');
 section('Statutory reports');
 {
   const { $, $$, click, sleep, window } = ctx;
+  await check('transmission tracking uses every transmitted bill', async () => {
+    const rows = await ctx.window.eval('reportDataset(state.reports.find(r => r.id === "R-08")).rows.length');
+    assert(rows === 14, 'expected 14 transmitted bills, got ' + rows);
+    return rows + ' bills';
+  });
   await check('all fifteen reports build a live preview', async () => {
     click('[data-nav="reports"]'); await sleep(300);
     const ids = [...new Set($$('[data-act="generate-report"]').map((b) => b.getAttribute('data-id')))];
