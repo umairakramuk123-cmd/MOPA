@@ -1297,7 +1297,7 @@ body.density-compact .card-head{padding-bottom:8px}
 </div>
 
 <div class="scrim" id="scrim"></div>
-<aside class="drawer" id="drawer" aria-label="Bill record"></aside>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Bill record"></aside>
 <div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Dialog"></div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div id="printSheet" aria-hidden="true"></div>
@@ -1807,7 +1807,7 @@ function kpiCard(o) {
     '<span class="kpi-ico">' + ic(o.icon, 16) + "</span></div>" +
     '<div><div class="kpi-val">' + valueHtml + (o.unit ? "<small>" + esc(o.unit) + "</small>" : "") + "</div>" +
     '<div class="kpi-delta">' + ic(o.trend === "down" ? "arrowDown" : "upRight", 12) + esc(o.delta) + "</div></div>" +
-    '<svg class="kpi-spark" viewBox="0 0 78 26" preserveAspectRatio="none"><polyline points="0 20 10 18 20 21 30 14 40 16 50 9 60 12 70 6 78 8"/></svg>' +
+    '<svg class="kpi-spark" aria-hidden="true" focusable="false" viewBox="0 0 78 26" preserveAspectRatio="none"><polyline points="0 20 10 18 20 21 30 14 40 16 50 9 60 12 70 6 78 8"/></svg>' +
     "</article>";
 }
 function miniStat(icon, tone, value, label) {
@@ -1892,7 +1892,7 @@ function viewDashboard() {
       '<section class="card c8 table-card" style="padding:0">' +
         '<div class="card-head" style="padding:12px 13px 0;margin-bottom:6px"><div><div class="card-title">Recently moved</div><div class="card-sub">Bills whose stage changed most recently</div></div>' +
         '<button class="link" data-nav="bills">Open registry ' + ic("right", 12) + "</button></div>" +
-        '<div class="table-wrap"><table class="tbl"><thead><tr><th>Bill</th><th>Type</th><th>Division</th><th>Stage</th><th>Updated</th></tr></thead><tbody>' +
+        '<div class="table-wrap"><table class="tbl"><thead><tr><th scope="col">Bill</th><th scope="col">Type</th><th scope="col">Division</th><th scope="col">Stage</th><th scope="col">Updated</th></tr></thead><tbody>' +
         recent.map((b) => '<tr data-act="open-bill" data-id="' + esc(b.id) + '"><td><div class="bill-cell"><span class="bill-glyph">' + ic("file", 14) + '</span><div><div class="bill-title">' + esc(b.shortTitle) + '</div><div class="bill-id">' + esc(b.id) + "</div></div></div></td>" +
           "<td>" + typeBadge(b.type) + "</td><td class=\"cell-muted\">" + esc(ministry(b.ministryId).short) + "</td><td>" + stageBadge(b) + "</td><td class=\"cell-muted nowrap\">" + relTime(b.stageEnteredAt) + "</td></tr>").join("") +
         "</tbody></table></div>" +
@@ -2006,7 +2006,7 @@ function viewExecutive() {
       '<section class="card c12 table-card" style="padding:0">' +
         '<div class="card-head" style="padding:12px 13px 0;margin-bottom:6px"><div><div class="card-title">Bills requiring attention</div><div class="card-sub">Overdue committee clocks, in the order they should be cleared</div></div>' +
         badge(s.overdue + " overdue", "b-red") + "</div>" +
-        '<div class="table-wrap"><table class="tbl"><thead><tr><th>Bill</th><th>Division</th><th>Stage</th><th>Days at stage</th><th>Deadline</th><th>Status</th></tr></thead><tbody>' +
+        '<div class="table-wrap"><table class="tbl"><thead><tr><th scope="col">Bill</th><th scope="col">Division</th><th scope="col">Stage</th><th scope="col">Days at stage</th><th scope="col">Deadline</th><th scope="col">Status</th></tr></thead><tbody>' +
         (bills.filter((b) => deadlineState(b) === "overdue").slice(0, 7).map((b) =>
           '<tr data-act="open-bill" data-id="' + esc(b.id) + '"><td><div class="bill-cell"><span class="bill-glyph">' + ic("file", 14) + '</span><div><div class="bill-title">' + esc(b.shortTitle) + '</div><div class="bill-id">' + esc(b.id) + "</div></div></div></td>" +
           '<td class="cell-muted">' + esc(ministry(b.ministryId).short) + "</td><td>" + stageBadge(b) + '</td><td class="cell-strong">' + stageAge(b) + "d</td><td>" + deadlineBadge(b) + '</td><td><span class="badge b-red">Escalate</span></td></tr>').join("") ||
@@ -2174,6 +2174,12 @@ function focusSort(act, key) {
   const btn = document.querySelector('[data-act="' + act + '"][data-key="' + key + '"]');
   if (btn) btn.focus();
 }
+function focusAct(act, attrs) {
+  const keys = Object.keys(attrs || {});
+  const hit = [...document.querySelectorAll('[data-act="' + act + '"]')]
+    .find((el) => keys.every((k) => el.getAttribute(k) === attrs[k]));
+  if (hit) hit.focus({ preventScroll: true });
+}
 const BILL_COLUMNS = [
   { key: "title", label: "Bill record" }, { key: "type", label: "Type" },
   { key: "house", label: "House" }, { key: "ministry", label: "Division" },
@@ -2338,7 +2344,7 @@ function viewCommittees() {
       '<section class="card c8 table-card" style="padding:0">' +
         '<div class="card-head" style="padding:12px 13px 0;margin-bottom:6px"><div><div class="card-title">Committee register</div><div class="card-sub">Ordered by the nearest statutory deadline</div></div>' +
         badge(overdue + " overdue", overdue ? "b-red" : "b-green") + "</div>" +
-        '<div class="table-wrap"><table class="tbl"><thead><tr><th>Bill</th><th>House</th><th>Committee</th><th>Referred</th><th>Clock</th><th>Status</th><th></th></tr></thead><tbody>' +
+        '<div class="table-wrap"><table class="tbl"><thead><tr><th scope="col">Bill</th><th scope="col">House</th><th scope="col">Committee</th><th scope="col">Referred</th><th scope="col">Clock</th><th scope="col">Status</th><th scope="col"></th></tr></thead><tbody>' +
         (rows.length ? rows.map((b) => {
           const st = deadlineState(b);
           const limit = b.house === "Senate" ? 60 : 30;
@@ -2460,8 +2466,8 @@ function docsPagerHtml() {
   const to = Math.min(pages, from + 5);
   for (let i = from; i < to; i++) buttons += '<button data-act="doc-page" data-page="' + i + '" class="' + (i === page ? "on" : "") + '">' + (i + 1) + "</button>";
   return '<div class="table-foot"><span>Page <b>' + (page + 1) + "</b> of <b>" + pages + "</b> · " + rows.length + " documents</span>" +
-    '<div class="pager"><button data-act="doc-page" data-page="' + (page - 1) + '" ' + (page === 0 ? "disabled" : "") + ">‹</button>" + buttons +
-    '<button data-act="doc-page" data-page="' + (page + 1) + '" ' + (page >= pages - 1 ? "disabled" : "") + ">›</button></div></div>";
+    '<div class="pager"><button data-act="doc-page" data-page="' + (page - 1) + '" ' + (page === 0 ? "disabled" : "") + ' aria-label="Previous page">‹</button>' + buttons +
+    '<button data-act="doc-page" data-page="' + (page + 1) + '" ' + (page >= pages - 1 ? "disabled" : "") + ' aria-label="Next page">›</button></div></div>';
 }
 function refreshDocs() {
   const t = document.getElementById("docs-table");
@@ -2708,7 +2714,7 @@ function refreshMinistries() {
   const head = document.querySelector("#view thead");
   if (head) {
     const current = head.querySelector("tr");
-    if (current) current.innerHTML = sortHead(MINISTRY_COLUMNS, state.filters.minSort, state.filters.minDir, "ministry-sort") + '<th aria-label="Actions"></th>';
+    if (current) current.innerHTML = sortHead(MINISTRY_COLUMNS, state.filters.minSort, state.filters.minDir, "ministry-sort") + '<th scope="col" aria-label="Actions"></th>';
   }
   makeActionable();
 }
@@ -2753,7 +2759,7 @@ function viewMinistries() {
       '<section class="card c12 table-card" style="padding:0">' +
         '<div class="table-wrap"><table class="tbl"><thead><tr>' +
         sortHead(MINISTRY_COLUMNS, state.filters.minSort, state.filters.minDir, "ministry-sort") +
-        "<th aria-label=\"Actions\"></th></tr></thead><tbody id=\"ministry-rows\">" +
+        "<th scope=\"col\" aria-label=\"Actions\"></th></tr></thead><tbody id=\"ministry-rows\">" +
         ministryRowsHtml() +
         "</tbody></table></div>" +
       "</section>" +
@@ -2966,7 +2972,7 @@ function viewAudit() {
           '<input data-field="auditQ" value="' + esc(state.filters.auditQ) + '" placeholder="Search actor, action, entity or reason…" aria-label="Search audit" style="width:100%" /></div></div>' +
         '<select class="input" data-field="auditAction" aria-label="Filter action" style="width:auto">' + actions.map((a) => '<option value="' + esc(a) + '" ' + (state.filters.auditAction === a ? "selected" : "") + ">" + (a === "all" ? "All actions" : esc(a)) + "</option>").join("") + "</select>" +
       "</div>" +
-      '<div class="table-wrap"><table class="tbl"><thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Entity</th><th>Reason</th><th>IP</th></tr></thead><tbody>' +
+      '<div class="table-wrap"><table class="tbl"><thead><tr><th scope="col">When</th><th scope="col">Actor</th><th scope="col">Action</th><th scope="col">Entity</th><th scope="col">Reason</th><th scope="col">IP</th></tr></thead><tbody>' +
       (pageRows.length ? pageRows.map((a) => '<tr>' +
         '<td class="cell-muted nowrap">' + fmtDateTime(a.at) + "</td>" +
         '<td><div class="row gap-6"><span class="avatar" style="width:24px;height:24px;border-radius:7px;font-size:13px">' + esc(initials(a.actor)) + "</span><div><div class=\"cell-strong\">" + esc(a.actor) + '</div><div class="bill-id">' + esc(DATA.roles[a.actorRole] ? DATA.roles[a.actorRole].short : a.actorRole) + "</div></div></div></td>" +
@@ -3088,7 +3094,7 @@ function viewProfile() {
       "</section>" +
       '<section class="card c12">' +
         '<div class="card-head"><div><div class="card-title">Active sessions</div><div class="card-sub">This demonstration runs a single in-memory session</div></div>' + badge("1 active", "b-green") + "</div>" +
-        '<div class="table-wrap"><table class="tbl"><thead><tr><th>Device</th><th>Location</th><th>Started</th><th>Last seen</th><th>Status</th></tr></thead><tbody>' +
+        '<div class="table-wrap"><table class="tbl"><thead><tr><th scope="col">Device</th><th scope="col">Location</th><th scope="col">Started</th><th scope="col">Last seen</th><th scope="col">Status</th></tr></thead><tbody>' +
         '<tr><td class="cell-strong">Chrome · macOS</td><td class="cell-muted">Islamabad, PK</td><td class="cell-muted">' + fmtDateTime(new Date(SYSTEM.getTime() - 42 * 60000).toISOString()) + '</td><td class="cell-muted">Just now</td><td><span class="badge b-green">Current</span></td></tr>' +
         "</tbody></table></div>" +
       "</section>" +
@@ -3350,6 +3356,7 @@ window.addEventListener("hashchange", () => {
   closeMenu();
   closeSidebar();
   render();
+  focusMain();
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
 
@@ -3366,7 +3373,12 @@ function go(view) {
   closeMenu();
   closeSidebar();
   render();
+  focusMain();
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+function focusMain() {
+  const host = document.getElementById("view");
+  if (host && state.entered) host.focus({ preventScroll: true });
 }
 
 function closeMenu() {
@@ -3424,6 +3436,7 @@ function renderDrawer() {
   const b = drawerBill();
   const host = document.getElementById("drawer");
   if (!b) { host.innerHTML = ""; host.classList.remove("on"); return; }
+  host.setAttribute("aria-label", "Bill record " + b.id);
   const docList = state.documents.filter((d) => d.billId === b.id &&
     (d.classification !== "classified" || can("documents.classified")));
   const auditList = state.audit.filter((a) => a.entityId === b.id);
@@ -4038,7 +4051,7 @@ function printReport(id) {
   sheet.innerHTML =
     '<div class="ps-head"><div><div class="ps-title">' + esc(r.name) + '</div><div class="ps-sub">' + esc(r.description) + '</div></div>' +
     '<div class="ps-sub">Ministry of Parliamentary Affairs<br />' + esc(fmtDate(new Date().toISOString())) + " · " + esc(user().name) + "</div></div>" +
-    "<table><thead><tr>" + data.cols.map((c) => "<th>" + esc(c) + "</th>").join("") + "</tr></thead><tbody>" +
+    "<table><thead><tr>" + data.cols.map((c) => "<th scope=\"col\">" + esc(c) + "</th>").join("") + "</tr></thead><tbody>" +
     data.rows.map((row) => "<tr>" + row.map((c) => "<td>" + esc(c == null ? "—" : c) + "</td>").join("") + "</tr>").join("") +
     '</tbody></table><div class="ps-foot"><span>Report R-' + String(r.no).padStart(2, "0") + " · " + data.rows.length + " records</span><span>MoPA Legislative Monitoring · Data classification: Restricted</span></div>";
   document.body.classList.add("printing-report");
@@ -4062,7 +4075,7 @@ function openReportModal(id) {
         miniStat("file", "g", data.cols.length, "Columns") +
         miniStat("clock", "a", fmtDate(new Date().toISOString()), "Generated") +
       "</div>" +
-      '<div class="report-table"><table class="tbl"><thead><tr>' + data.cols.map((c) => "<th>" + esc(c) + "</th>").join("") + "</tr></thead><tbody>" +
+      '<div class="report-table"><table class="tbl"><thead><tr>' + data.cols.map((c) => "<th scope=\"col\">" + esc(c) + "</th>").join("") + "</tr></thead><tbody>" +
         preview.map((row) => "<tr>" + row.map((c) => "<td>" + esc(c == null ? "—" : c) + "</td>").join("") + "</tr>").join("") +
       "</tbody></table></div>" +
       (data.rows.length > preview.length ? '<div class="report-note">Showing the first ' + preview.length + " of " + data.rows.length + " records. The download and print versions include every row.</div>" : "") +
@@ -4403,7 +4416,11 @@ function actionFrom(el) {
     case "legal": openLegalModal(id); return true;
     case "od": openOdModal(id); return true;
     case "close-modal": closeModal(); return true;
-    case "alert-filter": state.filters.alertStatus = target.getAttribute("data-status"); render(); return true;
+    case "alert-filter":
+      state.filters.alertStatus = target.getAttribute("data-status");
+      render();
+      focusAct("alert-filter", { "data-status": state.filters.alertStatus });
+      return true;
     case "ack-alert": advanceAlert(id); return true;
     case "approval": decideApproval(id, target.getAttribute("data-decision")); return true;
     case "approval-return": openReturnModal(id); return true;
@@ -4416,9 +4433,25 @@ function actionFrom(el) {
       logAudit("Reports generated", "Report", "all", "Full statutory pack generated.");
       render(); toast("All reports generated", "Fifteen reports refreshed from live records.", "good"); return true;
     }
-    case "report-cat": state.filters.reportCat = target.getAttribute("data-cat"); render(); return true;
-    case "tracking-type": state.filters.trackingType = target.getAttribute("data-type"); render(); return true;
-    case "bill-page": state.filters.billPage = Math.max(0, parseInt(target.getAttribute("data-page"), 10) || 0); refreshBills(); return true;
+    case "report-cat":
+      state.filters.reportCat = target.getAttribute("data-cat");
+      render();
+      focusAct("report-cat", { "data-cat": state.filters.reportCat });
+      return true;
+    case "tracking-type":
+      state.filters.trackingType = target.getAttribute("data-type");
+      render();
+      focusAct("tracking-type", { "data-type": state.filters.trackingType });
+      return true;
+    case "bill-page": {
+      const want = target.getAttribute("data-page");
+      state.filters.billPage = Math.max(0, parseInt(want, 10) || 0);
+      refreshBills();
+      const p = billsPageRows();
+      announce("Bills page " + (p.page + 1) + " of " + p.pages + ".");
+      focusAct("bill-page", { "data-page": want });
+      return true;
+    }
     case "bill-sort": {
       const key = target.getAttribute("data-key");
       const col = BILL_COLUMNS.find((c) => c.key === key);
@@ -4438,10 +4471,20 @@ function actionFrom(el) {
     case "audit-page": {
       state.filters.auditPage = Math.max(0, parseInt(target.getAttribute("data-page"), 10) || 0);
       render();
-      announce("Audit trail page " + (state.filters.auditPage + 1) + ".");
+      const pages = Math.max(1, Math.ceil(filteredAudit().length / 15));
+      announce("Audit trail page " + (Math.min(state.filters.auditPage, pages - 1) + 1) + " of " + pages + ".");
+      focusAct("audit-page", { "data-page": String(state.filters.auditPage) });
       return true;
     }
-    case "doc-page": state.filters.docPage = Math.max(0, parseInt(target.getAttribute("data-page"), 10) || 0); refreshDocs(); return true;
+    case "doc-page": {
+      const want = target.getAttribute("data-page");
+      state.filters.docPage = Math.max(0, parseInt(want, 10) || 0);
+      refreshDocs();
+      const p = docPages();
+      announce("Documents page " + (p.page + 1) + " of " + p.pages + ".");
+      focusAct("doc-page", { "data-page": want });
+      return true;
+    }
     case "doc-sort": {
       const key = target.getAttribute("data-key");
       const col = DOC_COLUMNS.find((c) => c.key === key);

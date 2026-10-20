@@ -148,7 +148,7 @@ Open it directly in a browser, or run the dev server and visit `http://localhost
 npm run verify:portal
 ```
 
-Boots `public/mopa-portal.html` in jsdom and drives it like a user — sign-in and OTP, all fifteen views, sortable registry, command palette, every one of the fifteen reports (preview, CSV, print sheet), alert-rule settings, dataset reset, focus traps, an accessibility sweep over every view, cross-view number consistency, and all seven role scopes, plus the idle-session warning, filtered exports, transmission tracking, audit and table paging and the alert-chip invariants. 32 checks, exits non-zero on the first regression.
+Boots `public/mopa-portal.html` in jsdom and drives it like a user — sign-in and OTP, all fifteen views, sortable registry, command palette, every one of the fifteen reports (preview, CSV, print sheet), alert-rule settings, dataset reset, focus traps, an accessibility sweep over every view, cross-view number consistency, and all seven role scopes, plus the idle-session warning, filtered exports, transmission tracking, audit and table paging, keyboard focus across filters and pagers, and the alert-chip invariants. 35 checks, exits non-zero on the first regression.
 
 ---
 
@@ -181,7 +181,7 @@ src/
 scripts/
 └─ verify-portal/                        # jsdom end-to-end pass over the single file
    ├─ lib.mjs                            # boot helper (Apex stub, stubs, captures)
-   └─ verify.mjs                         # 32 checks: views, a11y, reports, roles
+   └─ verify.mjs                         # 35 checks: views, a11y, reports, roles
 ```
 
 ---
@@ -192,6 +192,7 @@ scripts/
 - Visible focus rings on every interactive element
 - Keyboard: `⌘K` palette with arrow/enter navigation, `?` shortcut sheet, `Esc` to close overlays, paste support in OTP
 - Focus is trapped inside open modals and drawers, and restored to the page on close
+- Moving between views puts focus on the main region; filter chips, segmented controls and pagers keep focus where you left it, and every column header is scoped
 - Charts expose an accessible text summary (`role="img"` with a generated label)
 - Live region announces view changes and table sorting to screen readers
 - `prefers-reduced-motion` disables all animation, including chart and KPI motion

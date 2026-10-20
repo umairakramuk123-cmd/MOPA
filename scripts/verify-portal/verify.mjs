@@ -281,6 +281,65 @@ section('Keyboard');
     click('[data-act="close-modal"]'); await sleep(120);
     return '7 shortcuts';
   });
+  await check('in-place filters and pagers keep keyboard focus', async () => {
+    const focused = (act, attr, val) => document.activeElement ===
+      $(`[data-act="${act}"][${attr}="${val}"]`);
+    click('[data-nav="alerts"]'); await sleep(300);
+    let chip = $('[data-act="alert-filter"][data-status="acknowledged"]');
+    chip.focus(); click(chip); await sleep(260);
+    assert(focused('alert-filter', 'data-status', 'acknowledged'), 'alert chip lost focus');
+    click('[data-nav="reports"]'); await sleep(280);
+    const cat = $('[data-act="report-cat"]:not(.on)');
+    const catKey = cat.getAttribute('data-cat');
+    cat.focus(); click(cat); await sleep(260);
+    assert(focused('report-cat', 'data-cat', catKey), 'report chip lost focus');
+    const paged = [];
+    for (const [nav, act, label] of [['bills', 'bill-page', 'Bills page'], ['documents', 'doc-page', 'Documents page'], ['audit', 'audit-page', 'Audit trail page']]) {
+      click(`[data-nav="${nav}"]`); await sleep(300);
+      const before = $$('tbody tr')[0].textContent;
+      const btn = $$(`[data-act="${act}"]`).find((b) => b.getAttribute('data-page') === '1');
+      assert(btn, nav + ': no second page');
+      btn.focus(); click(btn); await sleep(280);
+      assert(focused(act, 'data-page', '1'), nav + ': pager lost focus');
+      assert($('#srStatus').textContent.startsWith(label + ' 2'), nav + ': no page announcement — ' + $('#srStatus').textContent);
+      assert($$('tbody tr')[0].textContent !== before, nav + ': page two shows the same rows');
+      paged.push(nav);
+    }
+    click('[data-nav="alerts"]'); await sleep(250);
+    click('[data-act="alert-filter"][data-status="open"]'); await sleep(220);
+    click('[data-nav="reports"]'); await sleep(250);
+    click('[data-act="report-cat"][data-cat="all"]'); await sleep(220);
+    return paged.join(' · ') + ' keep focus';
+  });
+  await check('navigation and segmented filters keep focus', async () => {
+    click('[data-nav="bills"]'); await sleep(280);
+    const nav = $('[data-nav="tracking"]');
+    nav.focus(); click(nav); await sleep(300);
+    assert(document.activeElement === $('#view'), 'focus did not move to main: ' + document.activeElement.tagName);
+    const seg = $$('[data-act="tracking-type"]')[0];
+    const type = seg.getAttribute('data-type');
+    seg.focus(); click(seg); await sleep(280);
+    assert(document.activeElement === $(`[data-act="tracking-type"][data-type="${type}"]`), 'segmented filter lost focus');
+    return 'main region · ' + type + ' workflow';
+  });
+  await check('column headers are scoped and overlays are dialogs', async () => {
+    let headers = 0;
+    for (const view of VIEWS) {
+      click(`[data-nav="${view}"]`); await sleep(170);
+      const ths = $$('#view th');
+      const bare = ths.filter((t) => !t.getAttribute('scope'));
+      assert(!bare.length, view + ': ' + bare.length + ' header cells without scope');
+      headers += ths.length;
+    }
+    click('[data-nav="bills"]'); await sleep(250);
+    ctx.window.openBill($$('tbody tr')[0].getAttribute('data-id') || 'MOPA-2026-1004');
+    await sleep(300);
+    assert($('#drawer').getAttribute('role') === 'dialog', 'drawer is not a dialog');
+    assert($('#drawer').getAttribute('aria-modal') === 'true', 'drawer is not modal');
+    ctx.window.closeDrawer();
+    assert($('#modal').getAttribute('role') === 'dialog', 'modal is not a dialog');
+    return headers + ' header cells scoped';
+  });
 }
 
 /* --------------------------------------------------------------- palette */
