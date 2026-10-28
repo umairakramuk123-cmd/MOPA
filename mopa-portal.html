@@ -1028,7 +1028,7 @@ i[data-ic]>svg{width:1em;height:1em;fill:currentColor}
 .s-compact .stat .ic{width:36px;height:36px;font-size:17px;border-radius:11px}
 .s-compact .stat .val{margin:0;font-size:16px;line-height:1.2}
 .s-compact .stat .lbl{line-height:1.3}
-.s-compact .stat .note{grid-column:1/-1;margin:8px 0 0;font-size:13px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.s-compact .stat .note{grid-column:1/-1;margin:8px 0 0;font-size:13px;opacity:.85;white-space:normal;display:block;line-height:1.35}
 .s-compact .stat .share{grid-column:1/-1;margin-top:8px;height:4px}
 .card.cc{padding:14px 16px 8px}
 .card.cc .card-h{margin-bottom:2px;gap:10px;flex-wrap:wrap}
@@ -1054,7 +1054,7 @@ i[data-ic]>svg{width:1em;height:1em;fill:currentColor}
 .dtab .dt-tx b{white-space:nowrap;overflow:visible}
 .dtab .dt-tx small{gap:2px 8px}
 .dmix>div:first-child{width:100px;margin:-6px -2px}
-.s-compact .stat .lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-compact .stat .lbl{white-space:normal}
 .dtools{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;margin:0 0 12px}
 .asof{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);font-weight:600}
 .asof i{color:#0d9488}.asof b{color:var(--ink)}
@@ -1238,7 +1238,7 @@ const ICONS={"add-circle-line":"<path d=\"M11 11V7H13V11H17V13H13V17H11V13H7V11H
    Front-end prototype built to BRD v1.2 (NITB, Oct 2026)
    All data below is sample data held in memory.
 ========================================================= */
-const TODAY=new Date('2026-10-21T12:00:00');
+const TODAY=new Date('2026-10-28T12:00:00');
 const DAY=864e5;
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
@@ -2224,7 +2224,7 @@ function cOutcome(id,B,t){const o=['Pending','Passed','Deferred','Withdrawn','As
   donut(id,['Pending','Passed','Deferred','Withdrawn','Assented'],o.map(x=>B.filter(b=>outcome(b)===x).length),['#94a3b8','#14b8a6','#f59e0b','#f43f5e','#059669'],t==='JS'?'Decisions':'Bills',H_MD-30);
   Q[Q.length-1][1].drill=i=>drill('outcome',o[i])}
 function cMiles(id,t,B){const M=MILES[t];
-  chart(id,{chart:{type:'bar',height:H_SM},series:[{name:'Bills',data:M.map(([s,l])=>dfCount(B,s,l))}],xaxis:{categories:M.map(m=>MILE_SHORT[m[2]]||m[2])},yaxis:{labels:{maxWidth:150}},plotOptions:{bar:{horizontal:true,barHeight:'70%',distributed:true,borderRadius:4}},colors:STG_COL(M.length),dataLabels:{enabled:true}})}
+  chart(id,{chart:{type:'bar',height:H_SM},series:[{name:'Bills',data:M.map(([s,l])=>dfCount(B,s,l))}],xaxis:{categories:M.map(m=>MILE_SHORT[m[2]]||m[2])},yaxis:{labels:{maxWidth:210}},plotOptions:{bar:{horizontal:true,barHeight:'70%',distributed:true,borderRadius:4}},colors:STG_COL(M.length),dataLabels:{enabled:true}})}
 function cHouseProg(id,t,B){const M=MILES[t].filter(m=>!/Assented|Notification|Endorsement|Issuance/.test(m[2]));const H=[['NA','National Assembly','#2563eb'],['Senate','Senate','#10b981']];
   chart(id,{chart:{type:'bar',height:H_SM},series:H.map(([h,n])=>({name:n,data:M.map(([s,l])=>dfCount(B.filter(b=>b.house===h),s,l))})),xaxis:{categories:M.map(m=>MILE_SHORT[m[2]]||m[2]),labels:{rotate:-30,rotateAlways:true,trim:false}},colors:H.map(x=>x[2]),plotOptions:{bar:{columnWidth:'66%',borderRadius:4}},legend:{position:'top'},drill:(i,s)=>drill('house',H[s][0])})}
 /* All 37 Ministries/Divisions in one compact column chart, stacked by the most urgent pending action */
@@ -2232,7 +2232,7 @@ const MIN_SHORT={'Climate Change & Env. Coordination':'Climate Change','Federal 
 const minBucket=b=>deadline(b)?.state==='overdue'?0:responseDue(b)?1:isDone(b)?3:b.status==='Active'?2:4;
 function cMinBar(id,B){const D=MINISTRIES.map(m=>[m,B.filter(b=>b.ministry===m)]).sort((a,c)=>c[1].length-a[1].length||a[0].localeCompare(c[0]));
   const S=['Overdue','Reply due','In progress','Assented','Deferred / Withdrawn'],C=['#f43f5e','#f59e0b','#0ea5e9','#059669','#94a3b8'];
-  const m=MOB();chart(id,{chart:{type:'bar',height:m?D.length*24+90:340,stacked:true},series:S.map((n,k)=>({name:n,data:D.map(([,L])=>L.filter(b=>minBucket(b)===k).length)})),
+  const m=true;chart(id,{chart:{type:'bar',height:D.length*22+90,stacked:true},series:S.map((n,k)=>({name:n,data:D.map(([,L])=>L.filter(b=>minBucket(b)===k).length)})),
     xaxis:{categories:D.map(([m])=>MIN_SHORT[m]||m),labels:m?{}:{rotate:-60,rotateAlways:true,trim:false,hideOverlappingLabels:false,style:{fontSize:'13px',fontWeight:600}}},yaxis:m?{labels:{maxWidth:140}}:{},
     tooltip:{x:{formatter:(v,o)=>D[o.dataPointIndex]?.[0]||v}},colors:C,plotOptions:{bar:{horizontal:m,columnWidth:'62%',barHeight:'70%',borderRadius:3}},grid:{padding:{left:4,right:4}},legend:{position:'top'},
     drill:i=>drill('ministry',D[i][0])})}
