@@ -1081,8 +1081,6 @@ i[data-ic]>svg{width:1em;height:1em;fill:currentColor}
 }
 @media (max-width:760px){.s-compact .stat .lbl{white-space:normal}}
 
-.src{display:flex;gap:7px;align-items:flex-start;margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);font-size:12px;line-height:1.45;color:var(--muted)}
-.src i{color:#0d9488;font-size:14px;margin-top:1px;flex:none}
 </style>
 </head>
 <body>
@@ -1855,7 +1853,7 @@ function trendChart(id,B){
 
 /* ---------- chart helpers for the dashboards ---------- */
 const shortT=b=>b.title.replace(/^The /,'').replace(/,? ?Bill,? 2026$/,'').replace(/\(Amendment\)/g,'(Amdt.)').replace(/\(Re-organization\)/,'(Re-org.)');
-const chartCard=(id,h,p,extra='')=>`<div class="card fade-up"><div class="card-h"><div><h3>${h}</h3><p>${p}</p></div>${extra}</div><div id="${id}"></div>${srcLine(id)}</div>`;
+const chartCard=(id,h,p,extra='')=>`<div class="card fade-up"><div class="card-h"><div><h3>${h}</h3><p>${p}</p></div>${extra}</div><div id="${id}"></div></div>`;
 function ageChart(id,B){const act=B.filter(b=>b.status==='Active'&&!/Assented|Notified/.test(stageName(b))),bands=[['0–15',0,15],['16–30',16,30],['31–60',31,60],['61–90',61,90],['90+',91,9999]];
   chart(id,{chart:{type:'bar',height:290},series:[{name:'Bills',data:bands.map(([,a,z])=>act.filter(b=>ageing(b)>=a&&ageing(b)<=z).length)}],xaxis:{categories:bands.map(x=>x[0]+' days')},plotOptions:{bar:{columnWidth:'46%',distributed:true}},colors:['#10b981','#14b8a6','#0ea5e9','#2563eb','#f43f5e'],dataLabels:{enabled:true}})}
 function clockChart(id,B,kind,h){const L=B.map(b=>({b,d:deadline(b)})).filter(x=>x.d&&(!kind||x.d.short===kind)).sort((a,c)=>a.d.left-c.d.left);
@@ -2333,27 +2331,7 @@ function drillBar(t,n){const v=`<button class="btn btn-sm btn-primary view-b" on
   :`<div class="drillhint"><span><i class="ri-cursor-line"></i>Tip: click any bar or slice to drill through — every chart below updates to that selection.</span>${v}</div>`}
 
 /* ---------- the panel shown under each tab: 4 compact rows ---------- */
-const SRC={
- dStage:'BRD §8 Stage-wise Tracking · counts the current stage of each Bill (§9 data fields)',
- dOut:'BRD §13 Executive Dashboard · House decision and Presidential decision fields (§9)',
- dSC:'BRD §8 Deadline Tracking · 30-day limit (NA) and 60-day limit (Senate) from Committee referral date',
- dOH:'BRD §8 Deadline Tracking · 90-day Constitutional limit from the date sent to the other House',
- dA74:'BRD §8 Article 74 & Consent Tracking · PMB pre-admissibility fields (§9)',
- dAssent:'BRD §9 Presidential Assent & Notification · MoPA endorsement, President’s decision, Notification dates',
- dAgeC:'BRD §16 Bill Ageing and Delay Report · days since the stage date (band sizes are a prototype choice; the BRD does not fix them)',
- dMin:'BRD §13 Executive Dashboard · Ministry/Division field, plus response and deadline status',
- dAct:'BRD §16 Reports · registration, passed and assented dates (§9)',
- dHouse:'BRD §16 House-wise Bill Progress Report · House of origin field (§9)',
- dMiles:'BRD §9 Data Fields · counts Bills where each step date has been recorded',
- dCoB:'BRD §9 Joint Sitting · Committee on Bills dates',
- dKind:'BRD §9 Bill Type field',
- chMinResp:'BRD §8 Ministry Responses · Ministry replies and open MoPA queries',
- chMinMix:'BRD §16 Bill Registry Report · current stage field',
- chLaw:'BRD §8 Law & Justice clearance · legal remarks field',
- chLawT:'BRD §8 Law & Justice clearance · legal remarks field, by Bill type',
-};
-const srcLine=id=>SRC[id]?`<div class="src"><i class="ri-database-2-line"></i><span>Source: ${SRC[id]}</span></div>`:'';
-const box=(id,h,p,cls='',extra='')=>`<div class="card cc fade-up ${cls}"><div class="card-h"><div><h3>${h}</h3>${p?`<p>${p}</p>`:''}</div>${extra}</div><div id="${id}"></div>${srcLine(id)}</div>`;
+const box=(id,h,p,cls='',extra='')=>`<div class="card cc fade-up ${cls}"><div class="card-h"><div><h3>${h}</h3>${p?`<p>${p}</p>`:''}</div>${extra}</div><div id="${id}"></div></div>`;
 function dashPanel(t,B0,o={}){
   const name=DTABS.find(x=>x[0]===t)[1],B=applyDrill(B0);DRILL_IDS=B.map(b=>b.id);const db=drillBar(t,B.length);
   if(!B0.length)return `<div class="card">${empty(`No ${name} in this view`,o.emptyMsg||'Nothing has been recorded under this workflow yet.',DTABS.find(x=>x[0]===t)[2])}</div>`;
@@ -2456,27 +2434,6 @@ function dashLaw(){
 }
 
 
-/* ---------- Where the numbers come from (summary for every role) ---------- */
-function dataSourceCard(){
-  const R=[
-    ['Where bills are now','How many bills sit at each step of the law-making process','Stage date recorded by a Data Manager (BRD §8 Stage-wise Tracking, §9 data fields)','§8, §9'],
-    ['What happened to each bill','Pending, passed, deferred, withdrawn or assented','House decision and President’s decision dates (BRD §9)','§9, §13'],
-    ['Bills with the Standing Committee: on time?','Bills inside or past the Committee time limit','Committee referral date. Limit: 30 days (NA), 60 days (Senate) (BRD §8 Deadline Tracking)','§8'],
-    ['Bills sent to the other House','Bills inside or past the 90-day Constitutional limit','Date the bill was sent to the other House. Limit: 90 days (BRD §8 Deadline Tracking)','§8'],
-    ['Bills waiting for the President','Endorsed, assented, notified and Gazette-published bills','MoPA endorsement, President’s decision and Notification dates (BRD §9)','§9'],
-    ['How long bills have waited','Days each active bill has spent at its current stage','Today minus the stage date. Bands: 0–15, 16–30, 31–60, 61–90, 90+ days (band sizes are a prototype choice; BRD §16 Ageing Report)','§16'],
-    ['Pending actions by Ministry / Division','Overdue, replies due, in progress, assented, or deferred bills per Ministry','Bill’s Ministry field, plus its deadline and reply status (BRD §13)','§13'],
-    ['Article 74 (Private Members’ Bills)','Ministry stance and Cabinet consent for Private Members’ Bills','Pre-admissibility fields: Article 74 Yes/No, consent date (BRD §8, §9)','§8, §9'],
-    ['Month-by-month activity','Bills registered, passed and assented per month, last 12 months','Registration, passed and assented dates (BRD §16 Reports)','§16'],
-    ['National Assembly vs Senate','Bills by House of origin','House of origin field (BRD §16 House-wise Progress Report)','§9, §16'],
-  ];
-  return `<div class="card flush mt fade-up"><div class="card-h"><div><h3>Where the numbers come from</h3><p>Every chart and number on this page is counted live from the Bill records. Nobody types numbers into the dashboard (BRD §8 Auto Reports &amp; Charts).</p></div></div>
-  <div class="tbl-wrap"><table><thead><tr><th>Chart or number</th><th>What it tells you</th><th>Data it is counted from</th><th>BRD</th></tr></thead><tbody>
-  ${R.map(([a,b,c,d])=>`<tr><td><b style="font-size:13px">${a}</b></td><td>${b}</td><td class="muted">${c}</td><td><span class="pill p-blue">${d}</span></td></tr>`).join('')}
-  </tbody></table></div>
-  <div class="pager"><span><b>How a number gets here:</b> Data Manager records a stage date + reference → Bill record and audit trail are saved → dashboard counts it on the next view.</span><span>Prototype: figures come from sample Bills</span></div></div>`;
-}
-const _dashRender=PAGES.dashboard;PAGES.dashboard=()=>_dashRender()+dataSourceCard();
 const fieldLabel=(b,k)=>{const [si,fi]=k.split('.').map(Number);return DF[b.type][si]?.fields[fi]?.label||''};
 
 /* =========================================================
