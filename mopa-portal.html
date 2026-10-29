@@ -2300,10 +2300,10 @@ function cOutcome(id,B,t){const o=['Pending','Passed','Deferred','Withdrawn','As
   Q[Q.length-1][1].drill=i=>drill('outcome',o[i])}
 function cHouseProg(id,t,B){const M=MILES[t].filter(m=>!/Assented|Notification|Endorsement|Issuance/.test(m[2]));const H=[['NA','National Assembly','#2563eb'],['Senate','Senate','#10b981']];
   chart(id,{chart:{type:'bar',height:H_SM},series:H.map(([h,n])=>({name:n,data:M.map(([s,l])=>dfCount(B.filter(b=>b.house===h),s,l))})),xaxis:{categories:M.map(m=>MILE_SHORT[m[2]]||m[2]),labels:{rotate:-30,rotateAlways:true,trim:false}},colors:H.map(x=>x[2]),plotOptions:{bar:{columnWidth:'66%',borderRadius:4}},legend:{position:'top'},drill:(i,s)=>drill('house',H[s][0])})}
-/* All 37 Ministries/Divisions in one compact column chart, stacked by the most urgent pending action */
+/* Top 10 Ministries/Divisions by number of Bills in one compact bar chart, stacked by the most urgent pending action */
 const MIN_SHORT={'Climate Change & Env. Coordination':'Climate Change','Federal Education & Prof. Training':'Federal Education','National Health Services, R&C':'National Health','Religious Affairs & Interfaith Harmony':'Religious Affairs','Poverty Alleviation & Social Safety':'Poverty Alleviation','Kashmir Affairs, GB & SAFRON':'Kashmir Affairs & GB','Interior & Narcotics Control':'Interior','Planning, Development & SI':'Planning & Dev.','Inter-Provincial Coordination':'Inter-Provincial','National Food Security & Research':'Food Security','Energy (Petroleum Division)':'Petroleum','Energy (Power Division)':'Power','IT & Telecommunication':'IT & Telecom','Information & Broadcasting':'Info. & Broadcasting','National Heritage & Culture':'Heritage & Culture','National Security Division':'National Security','Overseas Pakistanis & HRD':'Overseas Pakistanis','Establishment Division':'Establishment','Industries & Production':'Industries','Defence Production':'Defence Prod.','Science & Technology':'Science & Tech.','Parliamentary Affairs':'Parl. Affairs','Aviation Division':'Aviation','Cabinet Division':'Cabinet'};
 const minBucket=b=>deadline(b)?.state==='overdue'?0:responseDue(b)?1:isDone(b)?3:b.status==='Active'?2:4;
-function cMinBar(id,B){const D=MINISTRIES.map(m=>[m,B.filter(b=>b.ministry===m)]).sort((a,c)=>c[1].length-a[1].length||a[0].localeCompare(c[0]));
+function cMinBar(id,B){const D=MINISTRIES.map(m=>[m,B.filter(b=>b.ministry===m)]).sort((a,c)=>c[1].length-a[1].length||a[0].localeCompare(c[0])).slice(0,10);
   const S=['Overdue','Reply due','In progress','Assented','Deferred / Withdrawn'],C=['#f43f5e','#f59e0b','#0ea5e9','#059669','#94a3b8'];
   const m=true;chart(id,{chart:{type:'bar',height:D.length*22+90,stacked:true},series:S.map((n,k)=>({name:n,data:D.map(([,L])=>L.filter(b=>minBucket(b)===k).length)})),
     xaxis:{categories:D.map(([m])=>MIN_SHORT[m]||m),labels:m?{}:{rotate:-60,rotateAlways:true,trim:false,hideOverlappingLabels:false,style:{fontSize:'13px',fontWeight:600}}},yaxis:m?{labels:{maxWidth:140}}:{},
@@ -2413,7 +2413,7 @@ function dashPanel(t,B0,o={}){
   cStageWise('dStage',t,B);cOutcome('dOut',B,t);cAgeCat('dAgeC',B,t!=='JS'&&o.ministries!==false&&!MOB()?395:H_SM);cActivity('dAct',B);
   const mins=o.ministries!==false;if(mins)cMinBar('dMin',B);
   const stats=`<div class="grid g-stats s-compact">${tabStats(t,B).join('')}</div>`;
-  const minCard=mins?box('dMin','Pending actions by Ministry / Division',`All ${MINISTRIES.length} Ministries / Divisions (${new Set(B.map(b=>b.ministry)).size} with Bills) · click a column to drill`,'span2'):box('dAct','Month-by-month activity','Bills registered, passed and assented in the last 12 months','span2');
+  const minCard=mins?box('dMin','Pending actions by Ministry / Division','Top 10 Ministries / Divisions by number of Bills · click a bar to drill','span2'):box('dAct','Month-by-month activity','Bills registered, passed and assented in the last 12 months','span2');
   const actCard=mins?box('dAct','Month-by-month activity','Bills registered, passed and assented in the last 12 months','span2'):'';
   if(t==='JS'){cCoB('dCoB',B);cJSKind('dKind',B);cAssent('dAssent',t,B);
     return `<div class="dpanel" data-tab="JS">${db}${stats}
