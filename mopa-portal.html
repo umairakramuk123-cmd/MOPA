@@ -1648,19 +1648,39 @@ function navLabel(p){
 let CH=[],Q=[];
 const PAL=['#059669','#2563eb','#14b8a6','#0ea5e9','#6366f1','#22c55e','#0891b2','#3b82f6'];
 function chart(id,o){Q.push([id,o])}
-function legendHTML(names,colors,pos,vals){return `<div class="mc-leg ${pos||''}">${names.map((n,i)=>`<span><i style="background:${colors[i%colors.length]}"></i>${esc(n)}${vals?` <b>${vals[i]}</b>`:''}</span>`).join('')}</div>`}
+function legendHTML(names,colors,pos,vals){return `<div class="mc-leg ${pos||''}">${names.map((n,i)=>`<span><i style="background:linear-gradient(135deg,${colors[i%colors.length]},${lighten(colors[i%colors.length],.45)})"></i>${esc(n)}${vals?` <b>${vals[i]}</b>`:''}</span>`).join('')}</div>`}
 const stripFO=c=>{const el=c?.el;if(el)el.querySelectorAll('foreignObject').forEach(f=>f.remove())};
+/* ---------- colour hierarchy (same meaning = same colour in every chart) ----------
+   green = assented / done · teal = passed / in order · blue = in progress
+   indigo = Joint Sitting / President · amber = warning / reminder · rose = overdue
+   slate = pending / not yet started */
+const HIER={green:'#059669',teal:'#0d9488',blue:'#2563eb',sky:'#0284c7',indigo:'#4f46e5',amber:'#f59e0b',rose:'#f43f5e',slate:'#94a3b8'};
+const CANON={'#059669':'green','#10b981':'green','#047857':'green','#34d399':'green','#22c55e':'green',
+ '#14b8a6':'teal','#0d9488':'teal','#0891b2':'teal','#2dd4bf':'teal',
+ '#2563eb':'blue','#3b82f6':'blue','#1d4ed8':'blue','#60a5fa':'blue',
+ '#0ea5e9':'sky','#38bdf8':'sky','#0284c7':'sky',
+ '#6366f1':'indigo','#4f46e5':'indigo','#7c3aed':'indigo',
+ '#f59e0b':'amber','#d97706':'amber','#fbbf24':'amber',
+ '#f43f5e':'rose','#e11d48':'rose','#fb7185':'rose',
+ '#94a3b8':'slate','#cbd5e1':'slate','#64748b':'slate'};
+const canonC=c=>HIER[CANON[c]]||c;
+function lighten(hex,f=.4){const n=parseInt(hex.slice(1),16),m=c=>Math.round(c+(255-c)*f);const r=m(n>>16&255),g=m(n>>8&255),b=m(n&255);return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('')}
 function apexOpts(o){
   const t=o.chart.type,S=o.series,single=Array.isArray(S)&&S.length===1&&typeof S[0]==='object';
-  o.chart=Object.assign({fontFamily:'Manrope, sans-serif',toolbar:{show:false},zoom:{enabled:false},foreColor:'#64748b',parentHeightOffset:0,redrawOnParentResize:true,
+  o.chart=Object.assign({background:'#ffffff',fontFamily:'Manrope, sans-serif',toolbar:{show:false},zoom:{enabled:false},foreColor:'#64748b',parentHeightOffset:0,redrawOnParentResize:true,
     animations:{enabled:true,easing:'easeinout',speed:900,animateGradually:{enabled:true,delay:90},dynamicAnimation:{enabled:true,speed:400}},dropShadow:{enabled:false},events:{mounted:stripFO,updated:stripFO,animationEnd:stripFO}},o.chart);
   o.legend={show:false};
+  o.colors=(o.colors||PAL).map(canonC);
   o.colors=o.colors||PAL;
   if(o.dataLabels===undefined)o.dataLabels={enabled:false};
   if(o.dataLabels.enabled)o.dataLabels=Object.assign({style:{fontSize:'13px',fontWeight:700,colors:['#0b1b2b']},dropShadow:{enabled:false},offsetY:0},o.dataLabels);
   o.grid=Object.assign({borderColor:'#eef2f6',strokeDashArray:4,padding:{left:6,right:10}},o.grid||{});
   o.tooltip=Object.assign({theme:'dark',style:{fontSize:'13px',fontFamily:'Manrope'}},o.tooltip||{});
   o.states={hover:{filter:{type:'none'}},active:{filter:{type:'none'}}};
+  /* gradient fills on every chart (light top, deeper base) */
+  if(!['treemap','heatmap','radialBar','area'].includes(t)){
+    o.fill={type:'gradient',gradient:{shade:'light',type:o.plotOptions?.bar?.horizontal?'horizontal':'vertical',shadeIntensity:.5,gradientToColors:o.colors.map(c=>lighten(c,.45)),inverseColors:false,opacityFrom:1,opacityTo:.92,stops:[0,100]}};
+  }
   if(t==='bar'){
     const bar=Object.assign({borderRadius:6,borderRadiusApplication:'end',columnWidth:'50%',barHeight:'60%'},o.plotOptions?.bar||{});
     if(o.chart.stacked)bar.borderRadiusWhenStacked='last';
@@ -1694,6 +1714,17 @@ function legendFor(o){
   if(Array.isArray(o.series)&&o.series.length>1)return legendHTML(o.series.map(s=>s.name),cols,o.legendPos==='top'?'top':'');
   return '';
 }
+/* gradient strokes for line / area series and gradient markers (circles) */
+function gradLines(el,colors){
+  const svg=el&&el.querySelector('svg');if(!svg||!colors)return;const NS='http://www.w3.org/2000/svg';
+  let defs=svg.querySelector('defs.gl');if(!defs){defs=document.createElementNS(NS,'defs');defs.setAttribute('class','gl');svg.prepend(defs)}
+  defs.innerHTML=colors.map((c,i)=>`<linearGradient id="gl-${el.id}-${i}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${c}"/><stop offset="1" stop-color="${lighten(c,.45)}"/></linearGradient>`).join('');
+  svg.querySelectorAll('.apexcharts-line-series .apexcharts-series,.apexcharts-area-series .apexcharts-series').forEach((g,i)=>{
+    const u=`url(#gl-${el.id}-${i})`;
+    g.querySelectorAll('path.apexcharts-line,path.apexcharts-area').forEach(p=>p.setAttribute('stroke',u));
+    g.querySelectorAll('.apexcharts-series-markers circle,circle.apexcharts-marker').forEach(c=>c.setAttribute('fill',u));
+  });
+}
 function flushCharts(){
   if(typeof ApexCharts==='undefined'){Q.forEach(([id])=>{const e=document.getElementById(id);if(e)e.innerHTML=empty('Charts could not load','Please reload the page.','ri-bar-chart-box-line')});Q=[];return}
   Q.forEach(([id,o])=>{const el=document.getElementById(id);if(!el)return;
@@ -1701,7 +1732,7 @@ function flushCharts(){
     const leg=legendFor(o),opts=apexOpts(o);
     if(o.drill)opts.chart.events=Object.assign({},opts.chart.events,{dataPointSelection:(e,c,cfg)=>{if(cfg&&cfg.dataPointIndex>-1)o.drill(cfg.dataPointIndex,cfg.seriesIndex)}});
     el.innerHTML=`<div class="mc${o.drill?' drill':''}">${top?leg:''}<div class="mc-host"></div>${top?'':leg}</div>`;
-    const c=new ApexCharts(el.querySelector('.mc-host'),opts);c.render();CH.push({c,el})});
+    const c=new ApexCharts(el.querySelector('.mc-host'),opts);c.render();CH.push({c,el});setTimeout(()=>gradLines(el,opts.colors),1100)});
   Q=[];
 }
 function destroyCharts(){CH.forEach(x=>{try{x.c.destroy()}catch(e){}});CH=[]}
