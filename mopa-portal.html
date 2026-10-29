@@ -1180,6 +1180,17 @@ i[data-ic]>svg{width:1em;height:1em;fill:currentColor}
 .clockcard .cc-l,.clockcard .cc-d{white-space:nowrap}
 .clockcard .cc-d{font-size:13px}
 @media (max-width:1100px){.dtabs.dtabs{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* ===== LOGIN: reference layout (dark photo-style backdrop, heading + 3 lines, glass form card) ===== */
+.lx{position:relative;overflow:hidden;background:radial-gradient(900px 500px at 15% 10%,rgba(16,185,129,.35),transparent 60%),radial-gradient(800px 600px at 90% 100%,rgba(37,99,235,.35),transparent 60%),linear-gradient(135deg,#03251c 0%,#0b3b2e 45%,#0f2a4a 100%)}
+.lx::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px);background-size:120px 120px;-webkit-mask-image:linear-gradient(180deg,#000 0%,transparent 90%)}
+.lx>*{position:relative;z-index:1}
+.lx-hero{margin-top:auto;padding-bottom:40px;max-width:560px}
+.lx-hero h1{font-size:50px;font-weight:800;line-height:1.08;color:#fff;margin:0 0 26px;letter-spacing:-.02em}
+.lx-lines{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.lx-lines li{position:relative;padding-left:22px;font-size:17px;line-height:1.55;color:#d1fae5}
+.lx-lines li::before{content:'';position:absolute;left:0;top:.62em;width:9px;height:9px;border-radius:50%;background:#34d399;box-shadow:0 0 0 4px rgba(52,211,153,.2)}
+@media (max-width:900px){.lx-hero h1{font-size:34px}.lx-lines li{font-size:15px}}
 </style>
 </head>
 <body>
@@ -1201,42 +1212,13 @@ i[data-ic]>svg{width:1em;height:1em;fill:currentColor}
         </div>
         <div><b>Government of Pakistan</b><span>Ministry of Parliamentary Affairs</span></div>
       </div>
-      <span class="lx-kicker"><i class="ri-shield-check-line"></i>Legislative Monitoring Dashboard</span>
-      <h1>Every Bill, every stage,<br><em>one shared record.</em></h1>
-      <p>From registration to Gazette notification — stage dates, documents, Ministry responses and Constitutional deadlines, tracked in one place.</p>
-
-      <div class="lx-scene">
-        <svg viewBox="0 0 560 300" width="560" height="300" class="lx-svg" aria-hidden="true">
-          <defs>
-            <linearGradient id="lxTrack" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#34d399"/><stop offset=".55" stop-color="#22d3ee"/><stop offset="1" stop-color="#60a5fa"/></linearGradient>
-            <radialGradient id="lxGlow"><stop offset="0" stop-color="#ffffff"/><stop offset=".4" stop-color="#a7f3d0"/><stop offset="1" stop-color="#a7f3d0" stop-opacity="0"/></radialGradient>
-          </defs>
-          <!-- Parliament line art -->
-          <g class="draw" fill="none" stroke="#ffffff" stroke-opacity=".38" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M150 288 H410" pathLength="1"/>
-            <path d="M180 284 V230 H380 V284" pathLength="1"/>
-            <path d="M168 230 H392 L376 216 H184 Z" pathLength="1"/>
-            <path d="M205 280 V236 M232 280 V236 M259 280 V236 M301 280 V236 M328 280 V236 M355 280 V236" pathLength="1"/>
-            <path d="M268 282 V250 Q280 240 292 250 V282" pathLength="1"/>
-            <path d="M246 216 V204 H314 V216" pathLength="1"/>
-            <path d="M250 204 Q250 164 280 158 Q310 164 310 204" pathLength="1"/>
-            <path d="M280 158 V140 M280 140 L294 145 L280 150" pathLength="1"/>
-          </g>
-          <!-- Bill journey -->
-          <path id="lxPath" d="M40 200 C110 200 110 150 170 150 S 250 96 300 96 S 400 54 520 40" fill="none" stroke="#ffffff" stroke-opacity=".16" stroke-width="10" stroke-linecap="round"/>
-          <path d="M40 200 C110 200 110 150 170 150 S 250 96 300 96 S 400 54 520 40" fill="none" stroke="url(#lxTrack)" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 10" class="flow"/>
-          <circle r="16" fill="url(#lxGlow)"><animateMotion dur="7s" repeatCount="indefinite" rotate="auto"><mpath href="#lxPath"/></animateMotion></circle>
-          <circle r="5" fill="#ffffff"><animateMotion dur="7s" repeatCount="indefinite"><mpath href="#lxPath"/></animateMotion></circle>
-          <g font-family="Manrope, sans-serif" font-size="13" font-weight="700" fill="#ffffff">
-            <g class="node n1"><circle cx="40" cy="200" r="15" fill="#10b981" fill-opacity=".22" class="pulse"/><circle cx="40" cy="200" r="8" fill="#34d399" stroke="#ffffff" stroke-width="2.5"/><text x="40" y="232" text-anchor="middle">Registered</text></g>
-            <g class="node n2"><circle cx="170" cy="150" r="15" fill="#14b8a6" fill-opacity=".22" class="pulse"/><circle cx="170" cy="150" r="8" fill="#2dd4bf" stroke="#ffffff" stroke-width="2.5"/><text x="170" y="182" text-anchor="middle">Committee</text></g>
-            <g class="node n3"><circle cx="300" cy="96" r="15" fill="#22d3ee" fill-opacity=".22" class="pulse"/><circle cx="300" cy="96" r="8" fill="#22d3ee" stroke="#ffffff" stroke-width="2.5"/><text x="300" y="128" text-anchor="middle">Passed</text></g>
-            <g class="node n4"><circle cx="520" cy="40" r="15" fill="#60a5fa" fill-opacity=".22" class="pulse"/><circle cx="520" cy="40" r="8" fill="#60a5fa" stroke="#ffffff" stroke-width="2.5"/><text x="520" y="72" text-anchor="middle">Gazette</text></g>
-          </g>
-        </svg>
-        <div class="lx-chip c1"><span class="ci g"><i class="ri-file-paper-2-line"></i></span><div><b>30 Bills</b><small>Tracked live</small></div></div>
-        <div class="lx-chip c2"><span class="ci a"><i class="ri-timer-flash-line"></i></span><div><b>90-day clock</b><small>Other House limit</small></div></div>
-        <div class="lx-chip c3"><span class="ci b"><i class="ri-notification-3-line"></i></span><div><b>Alert sent</b><small>to the Ministry</small></div></div>
+      <div class="lx-hero">
+        <h1>Legislative Monitoring Dashboard</h1>
+        <ul class="lx-lines">
+          <li>Track every Bill from registration to Gazette notification.</li>
+          <li>Monitor Constitutional deadlines and Ministry responses in one place.</li>
+          <li>Built for MoPA, Ministries and Divisions across Pakistan.</li>
+        </ul>
       </div>
     </div>
 
