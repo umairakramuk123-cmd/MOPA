@@ -2342,11 +2342,11 @@ function tabStats(t,B){const k=kpis(B),A=activeOf(B),od=B.filter(b=>deadline(b)?
   const sc=B.filter(b=>stageName(b)==='Standing Committee'),tr=B.filter(b=>/Transmitted|Other House/.test(stageName(b)));
   if(t==='OB')return [
     stat('Official Bills',B.length,'ri-government-line','var(--grad-slate)',`<span>NA ${k.na}</span><span>Senate ${k.sen}</span>`,1,0),
-    stat('In Committee',sc.length,'ri-team-line','var(--grad-teal)',`${sc.filter(b=>deadline(b)?.state==='overdue').length} with delay at SC level`,sh(sc.length),1),
-    stat('In Other House',tr.length,'ri-send-plane-2-line','var(--grad-blue)','Transmitted — 90-day clock',sh(tr.length),2),
-    stat('Overdue',od,'ri-alarm-warning-line','var(--grad-rose)',`${plural(k.soon,'reminder')} due within 10 days`,sh(od),3),
-    stat('Sent for assent',k.assent,'ri-quill-pen-line','var(--grad-indigo)','MoPA Endorsement for Assent',sh(k.assent),4),
-    stat('Assented',k.enacted,'ri-award-line','var(--grad-green)',`${B.filter(b=>stageName(b)==='Notified').length} notified in the Gazette`,sh(k.enacted),5)];
+    stat('In Committee',sc.length,'ri-team-line','var(--grad-teal)',`${sc.filter(b=>deadline(b)?.state==='overdue').length} past deadline`,sh(sc.length),1),
+    stat('In Other House',tr.length,'ri-send-plane-2-line','var(--grad-blue)','90-day limit running',sh(tr.length),2),
+    stat('Late',od,'ri-alarm-warning-line','var(--grad-rose)',`${k.soon} more due in 10 days`,sh(od),3),
+    stat('With President',k.assent,'ri-quill-pen-line','var(--grad-indigo)','Waiting for signature',sh(k.assent),4),
+    stat('Signed into law',k.enacted,'ri-award-line','var(--grad-green)',`${B.filter(b=>stageName(b)==='Notified').length} in the Gazette`,sh(k.enacted),5)];
   if(t==='PMB'){const aw=B.filter(b=>!dfVal(b,'Pre-Admissibility / Advance Notice','Applicability of Article 74 (Ministry Stance)').yn).length,cr=B.filter(b=>dfVal(b,'Pre-Admissibility / Advance Notice','Consent of Federal Government (Received/Not)').yn==='Yes').length;return [
     stat('Non-Official Bills',B.length,'ri-user-star-line','var(--grad-blue)',`<span>NA ${k.na}</span><span>Senate ${k.sen}</span>`,1,0),
     stat('Stance awaited',aw,'ri-chat-history-line','var(--grad-amber)','Applicability of Article 74',sh(aw),1),
