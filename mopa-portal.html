@@ -25,6 +25,7 @@
   --grad-cyan:linear-gradient(135deg,#0369a1 0%,#2dd4bf 100%);
   --grad-rose:linear-gradient(135deg,#be123c 0%,#fb7185 100%);
   --grad-amber:linear-gradient(135deg,#b45309 0%,#f59e0b 100%);
+  --grad-slate:linear-gradient(135deg,#334155 0%,#64748b 100%);
   --r:20px;--r-sm:12px;
   --sh:0 12px 32px -16px rgba(15,23,42,.22);
   --sh-lg:0 30px 70px -28px rgba(15,23,42,.35);
@@ -1088,7 +1089,7 @@ i[data-ic]>svg{width:1em;height:1em;fill:currentColor}
 .s-compact .stat:hover{transform:none;box-shadow:0 8px 20px -16px rgba(15,23,42,.35)}
 .s-compact .stat .stat-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .s-compact .stat .lbl{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;white-space:normal;line-height:1.3}
-.s-compact .stat .stat-top>i{color:var(--acc);font-size:18px;flex:none}
+.s-compact .stat .stat-top>i{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;color:#fff;background:var(--gr,var(--acc));font-size:18px;flex:none;box-shadow:0 8px 16px -10px var(--acc)}
 .s-compact .stat .val{font-size:30px;font-weight:800;color:var(--ink);margin:8px 0 2px;line-height:1.1;letter-spacing:-.01em}
 .s-compact .stat .note{font-size:12.5px;opacity:1;color:var(--muted);margin:0;white-space:normal;display:block;line-height:1.4}
 .s-compact .stat .note span{margin-right:10px}
@@ -1765,10 +1766,10 @@ function kpis(B){
     stance:f(b=>b.type==='PMB'&&!b.art74),transit:f(b=>/Transmitted|Other House/.test(stageName(b))),
     law:f(b=>!b.lawCleared),active:f(b=>b.status==='Active'),resp:f(responseDue)};
 }
-const SOFT={green:'#ecfdf5',main:'#ecfdf5',blue:'#eff6ff',cyan:'#ecfeff',indigo:'#eef2ff',amber:'#fffbeb',rose:'#fff1f2',teal:'#f0fdfa',emb:'#f0fdf4'};
-const ACC={green:'#059669',main:'#059669',blue:'#2563eb',cyan:'#0891b2',indigo:'#4f46e5',amber:'#d97706',rose:'#e11d48',teal:'#0d9488',emb:'#047857'};
+const SOFT={slate:'#f8fafc',green:'#ecfdf5',main:'#ecfdf5',blue:'#eff6ff',cyan:'#ecfeff',indigo:'#eef2ff',amber:'#fffbeb',rose:'#fff1f2',teal:'#f0fdfa',emb:'#f0fdf4'};
+const ACC={slate:'#475569',green:'#059669',main:'#059669',blue:'#2563eb',cyan:'#0891b2',indigo:'#4f46e5',amber:'#d97706',rose:'#e11d48',teal:'#0d9488',emb:'#047857'};
 function stat(label,val,icon,grad,note,share,i){const k=(grad.match(/grad-(\w+)/)||[])[1],acc=ACC[k]||'#0d9488',soft=SOFT[k]||'#f0fdfa';
-  return `<div class="stat fade-up" style="--acc:${acc};--soft:${soft};--d:${i*60}ms"><div class="stat-top"><span class="lbl">${label}</span><i class="${icon}"></i></div><div class="val" data-count="${val}">0</div>${note?`<div class="note">${note}</div>`:''}<div class="share"><i data-w="${Math.round(Math.min(1,Math.max(0,share))*100)}"></i></div></div>`;
+  return `<div class="stat fade-up" style="--acc:${acc};--soft:${soft};--d:${i*60}ms"><div class="stat-top"><span class="lbl">${label}</span><i class="${icon}" style="--gr:${grad}"></i></div><div class="val" data-count="${val}">0</div>${note?`<div class="note">${note}</div>`:''}<div class="share"><i data-w="${Math.round(Math.min(1,Math.max(0,share))*100)}"></i></div></div>`;
 }
 function countUp(){
   $$('[data-count]').forEach(el=>{const t=+el.dataset.count;let s=null;const step=ts=>{if(!s)s=ts;const p=Math.min(1,(ts-s)/900);el.textContent=Math.round(t*(1-Math.pow(1-p,3))).toLocaleString();if(p<1)requestAnimationFrame(step)};requestAnimationFrame(step)});
@@ -2340,8 +2341,8 @@ function cTypeMini(id,ALL){donut(id,['Official','Non-Official','Joint Sitting'],
 function tabStats(t,B){const k=kpis(B),A=activeOf(B),od=B.filter(b=>deadline(b)?.state==='overdue').length,sh=n=>n/Math.max(1,B.length);
   const sc=B.filter(b=>stageName(b)==='Standing Committee'),tr=B.filter(b=>/Transmitted|Other House/.test(stageName(b)));
   if(t==='OB')return [
-    stat('Official Bills',B.length,'ri-government-line','var(--grad-main)',`<span>NA ${k.na}</span><span>Senate ${k.sen}</span>`,1,0),
-    stat('In Committee',sc.length,'ri-team-line','var(--grad-cyan)',`${sc.filter(b=>deadline(b)?.state==='overdue').length} with delay at SC level`,sh(sc.length),1),
+    stat('Official Bills',B.length,'ri-government-line','var(--grad-slate)',`<span>NA ${k.na}</span><span>Senate ${k.sen}</span>`,1,0),
+    stat('In Committee',sc.length,'ri-team-line','var(--grad-teal)',`${sc.filter(b=>deadline(b)?.state==='overdue').length} with delay at SC level`,sh(sc.length),1),
     stat('In Other House',tr.length,'ri-send-plane-2-line','var(--grad-blue)','Transmitted — 90-day clock',sh(tr.length),2),
     stat('Overdue',od,'ri-alarm-warning-line','var(--grad-rose)',`${plural(k.soon,'reminder')} due within 10 days`,sh(od),3),
     stat('Sent for assent',k.assent,'ri-quill-pen-line','var(--grad-indigo)','MoPA Endorsement for Assent',sh(k.assent),4),
@@ -2350,13 +2351,13 @@ function tabStats(t,B){const k=kpis(B),A=activeOf(B),od=B.filter(b=>deadline(b)?
     stat('Non-Official Bills',B.length,'ri-user-star-line','var(--grad-blue)',`<span>NA ${k.na}</span><span>Senate ${k.sen}</span>`,1,0),
     stat('Stance awaited',aw,'ri-chat-history-line','var(--grad-amber)','Applicability of Article 74',sh(aw),1),
     stat('Cabinet consent',cr,'ri-shield-check-line','var(--grad-green)','Received from the Cabinet',sh(cr),2),
-    stat('In Committee',sc.length,'ri-team-line','var(--grad-cyan)',`${sc.filter(b=>deadline(b)?.state==='overdue').length} with delay at SC level`,sh(sc.length),3),
+    stat('In Committee',sc.length,'ri-team-line','var(--grad-teal)',`${sc.filter(b=>deadline(b)?.state==='overdue').length} with delay at SC level`,sh(sc.length),3),
     stat('Overdue',od,'ri-alarm-warning-line','var(--grad-rose)',`${plural(k.soon,'reminder')} due within 10 days`,sh(od),4),
     stat('Assented',k.enacted,'ri-award-line','var(--grad-indigo)',`${A.length} still in progress`,sh(k.enacted),5)]}
   const cob=B.filter(b=>stageName(b)==='Committee on Bills').length,rp=dfCount(B,'Report Presented','Inclusion of Report on OD'),ps=dfCount(B,'Decision of Joint Sitting','Bill Passed');
   return [
     stat('Joint Sitting Bills',B.length,'ri-group-line','var(--grad-indigo)',`<span>Official ${B.filter(b=>b.jsKind!=='Non-Official Bill').length}</span><span>Non-Official ${B.filter(b=>b.jsKind==='Non-Official Bill').length}</span>`,1,0),
-    stat('Committee on Bills',cob,'ri-team-line','var(--grad-cyan)','Meetings in progress',sh(cob),1),
+    stat('Committee on Bills',cob,'ri-team-line','var(--grad-teal)','Meetings in progress',sh(cob),1),
     stat('Report Presented',rp,'ri-file-chart-line','var(--grad-blue)','In Joint Sitting',sh(rp),2),
     stat('Bill Passed',ps,'ri-checkbox-circle-line','var(--grad-teal)','Decision of Joint Sitting',sh(ps),3),
     stat('Sent for assent',k.assent,'ri-quill-pen-line','var(--grad-amber)','MoPA Endorsement for Assent',sh(k.assent),4),
