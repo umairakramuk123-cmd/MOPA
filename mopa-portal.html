@@ -1213,6 +1213,7 @@ i[data-ic]>svg{width:1em;height:1em;fill:currentColor}
 .dtabs .dtab:hover{transform:translateY(-2px);border-color:var(--acc,#94a3b8);border-top-color:var(--acc,#94a3b8);box-shadow:0 12px 24px -18px rgba(15,23,42,.35)}
 .dtabs .dtab.on{background:var(--tint,#e2e8f0);border-color:var(--acc);border-top-color:var(--acc);box-shadow:0 14px 28px -18px var(--acc)}
 .dtabs .dtab.on .dt-name{color:#0f172a}
+.dtabs.dtabs{grid-template-columns:repeat(3,minmax(0,1fr))!important}@media (max-width:760px){.dtabs.dtabs{grid-template-columns:1fr!important}}
 </style>
 </head>
 <body>
@@ -2432,12 +2433,11 @@ const PERIODS=[['all','All time'],['year','This year'],['180','Last 6 months'],[
 state.per=state.per||'all';
 const perF=B=>state.per==='all'?B:B.filter(b=>{const r=new Date(b.reg);return state.per==='year'?r.getFullYear()===TODAY.getFullYear():(TODAY-r)/DAY<=+state.per});
 function setPer(p){state.per=p;state.drill=[];render()}
-if(!window._clk)window._clk=setInterval(()=>{const d=document.getElementById('clkDate');if(d)d.textContent=nowD();setHands()},1000);
-function dashTools(){return `<div class="dtools fade-up"><span class="asof"><i class="ri-time-line"></i>Data as of <b>${TODAY.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}, ${TODAY.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</b></span>
+function dashTools(){return `<div class="dtools fade-up"><span class="asof"><em>Live</em>Data as of <b>${TODAY.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}, ${TODAY.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</b></span>
   <div class="seg sm">${PERIODS.map(([v,l])=>`<button class="${state.per===v?'on':''}" onclick="setPer('${v}')">${l}</button>`).join('')}</div>
   <div class="dt-act"><button class="btn btn-sm" onclick="printDash()"><i class="ri-printer-line"></i>Print</button><button class="btn btn-sm" onclick="downloadDash()"><i class="ri-download-2-line"></i>Download summary</button></div></div>`}
 function printDash(){document.body.classList.add('printing-dash');setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove('printing-dash'),400)},150)}
-function downloadDash(){const ALL=perF(state.role==='min'?visibleBills():(state.role==='sec'||state.role==='pmo')?execBills():BILLS),rows=[['Executive Dashboard Summary — Legislative Monitoring Dashboard'],['Data as of',TODAY.toLocaleString('en-GB')],['Period',PERIODS.find(p=>p[0]===state.per)[1]],[],['Workflow','Total Bills','In progress','At Standing Committee','In Other House','Overdue','Sent for assent','Assented']];
+function downloadDash(){const ALL=xF(perF(state.role==='min'?visibleBills():(state.role==='sec'||state.role==='pmo')?execBills():BILLS)),rows=[['Executive Dashboard Summary — Legislative Monitoring Dashboard'],['Data as of',TODAY.toLocaleString('en-GB')],['Period',PERIODS.find(p=>p[0]===state.per)[1]],[],['Workflow','Total Bills','In progress','At Standing Committee','In Other House','Overdue','Sent for assent','Assented']];
   DTABS.forEach(([t,l])=>{const B=ALL.filter(b=>b.type===t),k=kpis(B);rows.push([l,B.length,activeOf(B).length,B.filter(b=>/Standing Committee|Committee on Bills/.test(stageName(b))).length,k.transit,k.overdue,k.assent,k.enacted])});
   rows.push([],['House-wise','National Assembly','Senate','Joint Sitting']);DTABS.forEach(([t,l])=>rows.push([l,...['NA','Senate','Joint'].map(h=>ALL.filter(b=>b.type===t&&b.house===h).length)]));
   rows.push([],['Ministry/Division-wise','Bills received','Pending responses','Overdue','Assented']);MINISTRIES.forEach(m=>{const L=ALL.filter(b=>b.ministry===m);rows.push([m,L.length,L.filter(responseDue).length,L.filter(b=>deadline(b)?.state==='overdue').length,L.filter(isDone).length])});
@@ -2450,15 +2450,9 @@ function viewDrillBills(t){state.tab=t;state.f={q:'',ministry:'',house:'',status
 const TAB_SOFT={OB:'#f4fdf9',PMB:'#f5f9ff',JS:'#f6f6ff'};
 const TAB_TINT={OB:'#c7f5e1',PMB:'#c9e3ff',JS:'#d7d9ff'};
 const TAB_ACC={OB:'#059669',PMB:'#2563eb',JS:'#4f46e5'};
-const nowT=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Asia/Karachi'});
-const nowD=()=>new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Karachi'});
-const ticks=[...Array(12)].map((_,i)=>`<line x1="50" y1="6" x2="50" y2="${i%3===0?13:10}" transform="rotate(${i*30} 50 50)" stroke="#a7f3d0" stroke-width="${i%3===0?2.5:1.2}" stroke-linecap="round"/>`).join('');
-const analog=()=>`<svg class="analog" viewBox="0 0 100 100" aria-label="Analog clock"><circle cx="50" cy="50" r="46" fill="rgba(255,255,255,.08)" stroke="rgba(167,243,208,.5)" stroke-width="2"/>${ticks}<g id="hH" class="hand"><line x1="50" y1="54" x2="50" y2="28" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/></g><g id="hM" class="hand"><line x1="50" y1="56" x2="50" y2="18" stroke="#fff" stroke-width="3" stroke-linecap="round"/></g><g id="hS" class="hand"><line x1="50" y1="62" x2="50" y2="12" stroke="#34d399" stroke-width="1.6" stroke-linecap="round"/></g><circle cx="50" cy="50" r="3.2" fill="#34d399"/></svg>`;
-function setHands(){const n=new Date(),h=n.getHours()%12,m=n.getMinutes(),sec=n.getSeconds(),ms=n.getMilliseconds();const hd=document.getElementById('hH'),md=document.getElementById('hM'),sd=document.getElementById('hS');if(hd)hd.style.transform=`rotate(${(h+m/60)*30}deg)`;if(md)md.style.transform=`rotate(${(m+sec/60)*6}deg)`;if(sd)sd.style.transform=`rotate(${(sec+ms/1000)*6}deg)`}
-const clockCard=()=>`<div class="clockcard">${analog()}<div class="cc-tx"><b class="cc-d" id="clkDate">${nowD()}</b></div></div>`;
 function dashTabsBar(ALL){
   return `<div class="dtabs fade-up" role="tablist">${DTABS.map(([t,l])=>{const B=ALL.filter(b=>b.type===t),od=B.filter(b=>deadline(b)?.state==='overdue').length,en=B.filter(isDone).length,ac=activeOf(B).length,na=B.filter(b=>b.house==='NA').length,sen=B.filter(b=>b.house==='Senate').length;
-    return `<button class="dtab ${state.dTab===t?'on':''}" style="--soft:${TAB_SOFT[t]};--tint:${TAB_TINT[t]};--acc:${TAB_ACC[t]}" role="tab" aria-selected="${state.dTab===t}" onclick="setDTab('${t}')"><span class="dt-top"><span class="dt-name">${l}</span><em>${B.length}</em></span><span class="dt-stats"><span><b>${na}</b>National Assembly</span><span><b>${sen}</b>Senate</span></span></button>`}).join('')}${clockCard()}</div>`;
+    return `<button class="dtab ${state.dTab===t?'on':''}" style="--soft:${TAB_SOFT[t]};--tint:${TAB_TINT[t]};--acc:${TAB_ACC[t]}" role="tab" aria-selected="${state.dTab===t}" onclick="setDTab('${t}')"><span class="dt-top"><span class="dt-name">${l}</span><em>${B.length}</em></span><span class="dt-stats"><span><b>${na}</b>National Assembly</span><span><b>${sen}</b>Senate</span></span></button>`}).join('')}</div>`;
 }
 
 /* ---------- drill-through: click any bar / slice / cell to filter every chart ---------- */
@@ -2513,52 +2507,57 @@ PAGES.dashboard=()=>{
   if(state.role==='law')return dashLaw();
   return dashMoPA();
 };
+/* ---------- dashboard filters: one shared bar for every role; every chart and tab count follows it ---------- */
+const NOMATCH='No Bills match these filters. Try a different tab or clear one of the filters.';
+const xF=B=>{const x=state.x;return B.filter(b=>(!x.ministry||b.ministry===x.ministry)&&(!x.house||b.house===x.house)&&(!x.stage||bucket(b)===x.stage)&&(!x.mover||(x.mover==='Minister-in-Charge'?b.member==='Minister-in-Charge':b.member===x.mover))&&(!x.status||(x.status==='Overdue'?deadline(b)?.state==='overdue':x.status==='Active'?b.status==='Active':outcome(b)===x.status)))};
+const xOn=()=>!!(state.x.ministry||state.x.house||state.x.stage||state.x.status||state.x.mover);
+const clearX=()=>{state.x={view:'ALL',ministry:'',house:'',stage:'',status:'',mover:''};render()};
+function dashFilters(){
+  const x=state.x,sel=(k,label,opts)=>`<select class="input" aria-label="${label}" onchange="setX('${k}',this.value)"><option value="">${label}</option>${opts.map(([v,l])=>`<option value="${esc(v)}" ${x[k]===v?'selected':''}>${esc(l)}</option>`).join('')}</select>`;
+  const movers=[...new Set(BILLS.map(b=>b.member).filter(Boolean))].sort().map(m=>[m,m]);
+  const min=state.role==='min'?'':sel('ministry',`All Ministries / Divisions (${MINISTRIES.length})`,MINISTRIES.map(m=>[m,m]));
+  return `<div class="card xbar fade-up"><span class="xb-l"><i class="ri-filter-3-line"></i>Filters</span><div class="filters">${min}${sel('house','All Houses',[['NA','National Assembly'],['Senate','Senate'],['Joint','Joint Sitting']])}${sel('mover','All movers / sponsoring Ministries',movers)}${sel('stage','All stages',BUCKETS.map(s=>[s,s]))}${sel('status','All statuses',['Active','Overdue','Pending','Passed','Deferred','Withdrawn','Assented'].map(s=>[s,s]))}<button class="icon-btn" title="Clear filters" onclick="clearX()"><i class="ri-refresh-line"></i></button></div></div>`;
+}
 function dashMoPA(){
-  const B=perF(BILLS),k=kpis(B),t=state.dTab;
+  const t=state.dTab,B=xF(perF(BILLS));
   return `
+  ${dashFilters()}
   ${dashTools()}
   ${dashTabsBar(B)}
-  ${dashPanel(t,B.filter(b=>b.type===t))}`;
+  ${dashPanel(t,B.filter(b=>b.type===t),{ministries:!state.x.ministry,emptyMsg:xOn()?NOMATCH:undefined})}`;
 }
 function dashExec(){
-  const x=state.x;x.view='ALL';const ALL=perF(execBills()),r=ROLE(),t=state.dTab,B=ALL.filter(b=>b.type===t);
-  const bar=`<div class="card xbar fade-up"><span class="xb-l"><i class="ri-filter-3-line"></i>Filters</span>
-   <div class="filters"><select class="input" onchange="setX('ministry',this.value)"><option value="">All Ministries / Divisions (${MINISTRIES.length})</option>${MINISTRIES.map(m=>`<option ${x.ministry===m?'selected':''}>${m}</option>`).join('')}</select>
-   <select class="input" onchange="setX('house',this.value)"><option value="">All Houses</option>${['NA','Senate','Joint'].map(h=>`<option value="${h}" ${x.house===h?'selected':''}>${HOUSE_NAME[h]}</option>`).join('')}</select>
-   <select class="input" onchange="setX('mover',this.value)"><option value="">All movers / sponsoring Ministries</option>${[...new Set(BILLS.map(b=>b.member).filter(Boolean))].sort().map(m=>`<option ${x.mover===m?'selected':''}>${esc(m)}</option>`).join('')}</select>
-   <select class="input" onchange="setX('stage',this.value)"><option value="">All stages</option>${BUCKETS.map(s=>`<option ${x.stage===s?'selected':''}>${s}</option>`).join('')}</select>
-   <select class="input" onchange="setX('status',this.value)"><option value="">All statuses</option>${['Active','Overdue','Pending','Passed','Deferred','Withdrawn','Assented'].map(s=>`<option ${x.status===s?'selected':''}>${s}</option>`).join('')}</select>
-   <button class="icon-btn" title="Clear filters" onclick="state.x={view:'ALL',ministry:'',house:'',stage:'',status:'',mover:''};render()"><i class="ri-refresh-line"></i></button></div></div>`;
+  const x=state.x;x.view='ALL';const ALL=xF(perF(execBills())),r=ROLE(),t=state.dTab,B=ALL.filter(b=>b.type===t);
   const head=`<div class="ph"><div><span class="eyebrow">Executive Dashboard</span><h1>${greet()}, ${first()}</h1><p>Stage-wise status, ageing, Standing Committee pendency, transmitted-Bill clocks and pending decisions — for Official Bills, Non-Official Bills and Joint Sitting.</p></div>${r.readonly?'<span class="pill p-blue"><i class="ri-lock-line"></i>View only</span>':''}</div>`;
-  const filtered=x.ministry||x.house||x.stage||x.status||x.mover;
-  return head+bar+dashTools()+dashTabsBar(ALL)+dashPanel(t,B,{ministries:!x.ministry,emptyMsg:filtered?'No Bills match these filters. Try a different tab or clear one of the filters.':undefined});
+  return head+dashFilters()+dashTools()+dashTabsBar(ALL)+dashPanel(t,B,{ministries:!x.ministry,emptyMsg:xOn()?NOMATCH:undefined});
 }
 function dashMinistry(){
-  const B=perF(visibleBills()),k=kpis(B),r=ROLE(),due=B.filter(responseDue),sent=B.reduce((a,b)=>a+b.responses.length,0),t=state.dTab;
+  const B=xF(perF(visibleBills())),k=kpis(B),r=ROLE(),due=B.filter(responseDue),sent=B.reduce((a,b)=>a+b.responses.length,0),t=state.dTab;
   donut('chMinResp',['Replies sent','Replies due'],[sent,due.length],['#2563eb','#f43f5e'],'Replies',260);
   const bk=BUCKETS.filter(x=>B.some(b=>bucket(b)===x));donut('chMinMix',bk,bk.map(x=>B.filter(b=>bucket(b)===x).length),null,'Bills',260);
   const F=B.map(flagOf),n=f=>F.filter(x=>x.t===f).length;
   return `
+  ${dashFilters()}
   <div class="flags fade-up"><div class="fl r"><i class="ri-alarm-warning-line"></i><div><b>${n('r')}</b><span>Red — overdue / escalated</span></div></div><div class="fl y"><i class="ri-timer-line"></i><div><b>${n('y')}</b><span>Yellow — reminder, reply due</span></div></div><div class="fl g"><i class="ri-checkbox-circle-line"></i><div><b>${n('g')}</b><span>Green — on track / actioned</span></div></div></div>
   <div class="grid g-11">${chartCard('chMinResp','Ministry replies','Replies sent to MoPA, and replies still due')}${chartCard('chMinMix','Your bills by stage','How many of your Ministry’s bills are at each step')}</div>
   <div class="mt"></div>
   ${dashTools()}
   ${dashTabsBar(B)}
-  ${dashPanel(t,B.filter(b=>b.type===t),{ministries:false,emptyMsg:'MoPA has not shared any Bill of this type with your Ministry.'})}`;
+  ${dashPanel(t,B.filter(b=>b.type===t),{ministries:false,emptyMsg:xOn()?NOMATCH:'MoPA has not shared any Bill of this type with your Ministry.'})}`;
 }
 function dashLaw(){
-  const B=perF(BILLS),pend=B.filter(b=>!b.lawCleared),done=B.length-pend.length,t=state.dTab;
+  const B=xF(perF(BILLS)),pend=B.filter(b=>!b.lawCleared),done=B.length-pend.length,t=state.dTab;
   chart('chLaw',{chart:{type:'radialBar',height:270},series:[B.length?Math.round(done/B.length*100):0],labels:['Cleared'],colors:['#059669']});
   const c=x=>B.filter(b=>b.type===x);
   chart('chLawT',{chart:{type:'bar',height:270,stacked:true},series:[{name:'Cleared',data:['OB','PMB','JS'].map(x=>c(x).filter(b=>b.lawCleared).length)},{name:'Pending',data:['OB','PMB','JS'].map(x=>c(x).filter(b=>!b.lawCleared).length)}],xaxis:{categories:['Official Bills','Non-Official Bills','Joint Sitting']},colors:['#059669','#f59e0b'],legend:{position:'top'}});
   return `
+  ${dashFilters()}
   <div class="grid g-12">${chartCard('chLaw','Legal check done','Share of bills cleared by Law & Justice')}${chartCard('chLawT','Legal check by bill type','Cleared vs still waiting')}</div>
   <div class="mt"></div>
   ${dashTools()}
   ${dashTabsBar(B)}
-  ${dashPanel(t,B.filter(b=>b.type===t))}`;
+  ${dashPanel(t,B.filter(b=>b.type===t),{emptyMsg:xOn()?NOMATCH:undefined})}`;
 }
-
 
 const fieldLabel=(b,k)=>{const [si,fi]=k.split('.').map(Number);return DF[b.type][si]?.fields[fi]?.label||''};
 
