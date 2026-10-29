@@ -1121,6 +1121,20 @@ i[data-ic]>svg{width:1em;height:1em;fill:currentColor}
 .dt-stats .r b{color:#be123c}
 .dt-stats .g b{color:#047857}
 @media (max-width:760px){.dt-stats{gap:12px}.dt-stats b{font-size:16px}}
+
+/* ===== DASHBOARD: sections, glass charts, live clock ===== */
+.dpanel{position:relative;padding:22px;border-radius:28px;background:radial-gradient(1100px 480px at 0% 0%,rgba(16,185,129,.20),transparent 60%),radial-gradient(900px 480px at 100% 0%,rgba(37,99,235,.16),transparent 60%),radial-gradient(900px 560px at 50% 100%,rgba(13,148,136,.14),transparent 60%),linear-gradient(180deg,#f0fdf8 0%,#eef6ff 100%);overflow:hidden}
+.dpanel .card.cc{background:rgba(255,255,255,.42);backdrop-filter:blur(18px) saturate(170%);-webkit-backdrop-filter:blur(18px) saturate(170%);border:1px solid rgba(255,255,255,.75);box-shadow:0 12px 32px -18px rgba(15,23,42,.28),inset 0 1px 0 rgba(255,255,255,.7)}
+.sec-head{display:flex;align-items:center;gap:14px;margin:30px 4px 14px}
+.sec-head:first-child{margin-top:4px}
+.sec-no{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:14px;background:var(--grad-main);box-shadow:0 10px 20px -12px rgba(5,150,105,.7);flex:none}
+.sec-head h2{font-size:19px;font-weight:800;color:var(--ink);margin:0;letter-spacing:-.01em}
+.sec-head p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.liveclk{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:99px;background:rgba(255,255,255,.6);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.85);box-shadow:0 8px 20px -16px rgba(15,23,42,.35)}
+.liveclk b{font-size:14px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.liveclk em{font-style:normal;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#059669;background:rgba(16,185,129,.14);padding:2px 8px;border-radius:99px}
+.ldot{width:8px;height:8px;border-radius:50%;background:#10b981;animation:livepulse 1.6s infinite}
+@keyframes livepulse{0%{box-shadow:0 0 0 0 rgba(16,185,129,.6)}70%{box-shadow:0 0 0 8px rgba(16,185,129,0)}100%{box-shadow:0 0 0 0 rgba(16,185,129,0)}}
 </style>
 </head>
 <body>
@@ -1670,7 +1684,7 @@ function toMain(hex,f=.3){const a=parseInt(hex.slice(1),16),b=0x2563eb;const mix
 function lighten(hex,f=.4){const n=parseInt(hex.slice(1),16),m=c=>Math.round(c+(255-c)*f);const r=m(n>>16&255),g=m(n>>8&255),b=m(n&255);return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('')}
 function apexOpts(o){
   const t=o.chart.type,S=o.series,single=Array.isArray(S)&&S.length===1&&typeof S[0]==='object';
-  o.chart=Object.assign({background:'#ffffff',fontFamily:'Manrope, sans-serif',toolbar:{show:false},zoom:{enabled:false},foreColor:'#64748b',parentHeightOffset:0,redrawOnParentResize:true,
+  o.chart=Object.assign({background:'transparent',fontFamily:'Manrope, sans-serif',toolbar:{show:false},zoom:{enabled:false},foreColor:'#64748b',parentHeightOffset:0,redrawOnParentResize:true,
     animations:{enabled:true,easing:'easeinout',speed:900,animateGradually:{enabled:true,delay:90},dynamicAnimation:{enabled:true,speed:400}},dropShadow:{enabled:false},events:{mounted:stripFO,updated:stripFO,animationEnd:stripFO}},o.chart);
   o.legend={show:false};
   o.colors=(o.colors||PAL).map(canonC);
@@ -2369,7 +2383,8 @@ const PERIODS=[['all','All time'],['year','This year'],['180','Last 6 months'],[
 state.per=state.per||'all';
 const perF=B=>state.per==='all'?B:B.filter(b=>{const r=new Date(b.reg);return state.per==='year'?r.getFullYear()===TODAY.getFullYear():(TODAY-r)/DAY<=+state.per});
 function setPer(p){state.per=p;state.drill=[];render()}
-function dashTools(){return `<div class="dtools fade-up"><span class="asof"><i class="ri-time-line"></i>Data as of <b>${TODAY.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}, ${TODAY.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</b></span>
+if(!window._clk)window._clk=setInterval(()=>{const e=document.getElementById('clk');if(e)e.textContent=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Asia/Karachi'})},1000);
+function dashTools(){return `<div class="dtools fade-up"><span class="liveclk"><span class="ldot"></span><b id="clk">${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Asia/Karachi'})}</b><em>Live</em></span><span class="asof"><i class="ri-time-line"></i>Data as of <b>${TODAY.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}, ${TODAY.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</b></span>
   <div class="seg sm">${PERIODS.map(([v,l])=>`<button class="${state.per===v?'on':''}" onclick="setPer('${v}')">${l}</button>`).join('')}</div>
   <div class="dt-act"><button class="btn btn-sm" onclick="printDash()"><i class="ri-printer-line"></i>Print</button><button class="btn btn-sm" onclick="downloadDash()"><i class="ri-download-2-line"></i>Download summary</button></div></div>`}
 function printDash(){document.body.classList.add('printing-dash');setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove('printing-dash'),400)},150)}
@@ -2405,6 +2420,7 @@ function drillBar(t,n){const v=`<button class="btn btn-sm btn-primary view-b" on
   :`<div class="drillhint"><span><i class="ri-cursor-line"></i>Click a bar or slice to filter the charts below.</span>${v}</div>`}
 
 /* ---------- the panel shown under each tab: 4 compact rows ---------- */
+const sec=(no,h,p)=>`<div class="sec-head fade-up"><span class="sec-no">${no}</span><div><h2>${h}</h2><p>${p}</p></div></div>`;
 const box=(id,h,p,cls='',extra='')=>`<div class="card cc fade-up ${cls}"><div class="card-h"><div><h3>${h}</h3>${p?`<p>${p}</p>`:''}</div>${extra}</div><div id="${id}"></div></div>`;
 function dashPanel(t,B0,o={}){
   const name=DTABS.find(x=>x[0]===t)[1],B=applyDrill(B0);DRILL_IDS=B.map(b=>b.id);const db=drillBar(t,B.length);
@@ -2416,18 +2432,19 @@ function dashPanel(t,B0,o={}){
   const minCard=mins?box('dMin','Pending actions by Ministry / Division','Top 10 Ministries / Divisions by number of Bills · click a bar to drill','span2'):box('dAct','Month-by-month activity','Bills registered, passed and assented in the last 12 months','span2');
   const actCard=mins?box('dAct','Month-by-month activity','Bills registered, passed and assented in the last 12 months','span2'):'';
   if(t==='JS'){cCoB('dCoB',B);cJSKind('dKind',B);cAssent('dAssent',t,B);
-    return `<div class="dpanel" data-tab="JS">${db}${stats}
+    return `<div class="dpanel" data-tab="JS">${db}${sec('01','Bill status','Where every Bill is now and how each one ended')}${stats}
     <div class="grid g-3 mt">${box('dStage','Where joint sitting bills are now','How many bills are at each step. Click a bar to see them.','span2')}${box('dOut','What happened to each bill','Passed, deferred, withdrawn or assented')}</div>
-    <div class="grid g-3 mt">${minCard}${box('dCoB','Bills with the Committee on Bills','Referred, in committee, report presented or withdrawn')}</div>
+    ${sec('02','Committee and assent','Joint Sitting Bills in committee, by house and by the President stage')}<div class="grid g-3 mt">${minCard}${box('dCoB','Bills with the Committee on Bills','Referred, in committee, report presented or withdrawn')}</div>
     <div class="grid g-3 mt">${box('dKind','Official vs Non-Official','Who introduced the bill')}${box('dAssent','Bills waiting for the President','Endorsed, assented, notified and printed in the Gazette')}${box('dAgeC','How long bills have waited','Days since the bill reached its current stage')}</div>
     <div class="grid g-3 mt">${actCard}</div></div>`;
   }
   cHouseProg('dHouse',t,B);const ext=cSC('dSC',t,B);cOtherHouse('dOH',t,B);
   const third=t==='PMB'?(cA74('dA74',B),box('dA74','Article 74 (Private Members’ Bills)','Has the Ministry replied, and has Cabinet consent come?')):(cAssent('dAssent',t,B),box('dAssent','Bills waiting for the President','Endorsed, assented, notified and printed in the Gazette'));
-  return `<div class="dpanel" data-tab="${t}">${db}${stats}
+  return `<div class="dpanel" data-tab="${t}">${db}${sec('01','Bill status','Where every Bill is now and how each one ended')}${stats}
   <div class="grid g-3 mt">${box('dStage','Where bills are now','How many bills are at each step of the law-making process. Click a bar to see them.','span2')}${box('dOut','What happened to each bill','Pending, passed, deferred, withdrawn or assented')}</div>
-  <div class="grid g-3 mt">${box('dSC','Bills with the Standing Committee: on time?',`Is each bill within its time limit? 30 days (NA), 60 days (Senate)${ext?` · ${plural(ext,'extension')} granted`:''}`)}${box('dOH','Bills sent to the other House','Is each bill within its 90-day limit?')}${third}</div>
-  <div class="grid g-3 mt">${minCard}${box('dAgeC','How long bills have waited','Days since the bill reached its current stage')}</div>
+  ${sec('02','Committee and House progress','Deadlines at committee stage and transfer to the other House')}<div class="grid g-3 mt">${box('dSC','Bills with the Standing Committee: on time?',`Is each bill within its time limit? 30 days (NA), 60 days (Senate)${ext?` · ${plural(ext,'extension')} granted`:''}`)}${box('dOH','Bills sent to the other House','Is each bill within its 90-day limit?')}${third}</div>
+  ${sec('03','Ministries and ageing','Which Ministries hold the most Bills, and how long Bills have waited')}<div class="grid g-3 mt">${minCard}${box('dAgeC','How long bills have waited','Days since the bill reached its current stage')}</div>
+  ${sec('04','Houses and activity','Progress by House of origin and monthly movement of Bills')}
   ${(()=>{const r4=t==='PMB'?(cAssent('dAssent',t,B),box('dAssent','Bills waiting for the President','Endorsed, assented, notified and printed in the Gazette')):(mins?box('dAct','Month-by-month activity','Bills registered, passed and assented in the last 12 months'):'');
     return `<div class="grid ${r4?'g-3':'g-11'} mt">${box('dHouse','National Assembly vs Senate','Where bills from each House have reached')}${r4}</div>${t==='PMB'&&mins?`<div class="grid mt">${box('dAct','Month-by-month activity','Bills registered, passed and assented in the last 12 months')}</div>`:''}`})()}
   </div>`;
