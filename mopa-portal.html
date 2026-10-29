@@ -1207,6 +1207,12 @@ i[data-ic]>svg{width:1em;height:1em;fill:currentColor}
 /* final: no extra gap between the hint row and section 01 */
 .drillhint{margin:0 0 8px}
 .sec-head[data-no="01"],.dpanel .sec-head[data-no="01"]{margin:0 4px 12px;padding-top:0;border-top:0}
+
+/* workflow cards: light tint by default, stronger tint + accent border when selected */
+.dtabs .dtab{background:var(--soft,#fff);border:1px solid #e2e8f0;border-top:3px solid #e2e8f0;transition:background .25s ease,border-color .25s ease,box-shadow .25s ease,transform .2s ease}
+.dtabs .dtab:hover{transform:translateY(-2px);border-color:var(--acc,#94a3b8);border-top-color:var(--acc,#94a3b8);box-shadow:0 12px 24px -18px rgba(15,23,42,.35)}
+.dtabs .dtab.on{background:var(--tint,#e2e8f0);border-color:var(--acc);border-top-color:var(--acc);box-shadow:0 14px 28px -18px var(--acc)}
+.dtabs .dtab.on .dt-name{color:#0f172a}
 </style>
 </head>
 <body>
@@ -2443,7 +2449,9 @@ let DRILL_IDS=[];
 function viewDrillBills(t){state.tab=t;state.f={q:'',ministry:'',house:'',status:'',ruling:'',ids:DRILL_IDS.slice(),idsLabel:state.drill.map(d=>drillLabel(d)).join(' · ')||DTABS.find(x=>x[0]===t)[1]};state.pg=1;go._keep=true;go._ids=true;go('bills')}
 
 /* ---------- tab bar: one card per workflow, with live counts ---------- */
-const TAB_SOFT={OB:'#ecfdf5',PMB:'#eff6ff',JS:'#eef2ff'};
+const TAB_SOFT={OB:'#f4fdf9',PMB:'#f5f9ff',JS:'#f6f6ff'};
+const TAB_TINT={OB:'#c7f5e1',PMB:'#c9e3ff',JS:'#d7d9ff'};
+const TAB_ACC={OB:'#059669',PMB:'#2563eb',JS:'#4f46e5'};
 const nowT=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Asia/Karachi'});
 const nowD=()=>new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Karachi'});
 const ticks=[...Array(12)].map((_,i)=>`<line x1="50" y1="6" x2="50" y2="${i%3===0?13:10}" transform="rotate(${i*30} 50 50)" stroke="#a7f3d0" stroke-width="${i%3===0?2.5:1.2}" stroke-linecap="round"/>`).join('');
@@ -2452,7 +2460,7 @@ function setHands(){const n=new Date(),h=n.getHours()%12,m=n.getMinutes(),sec=n.
 const clockCard=()=>`<div class="clockcard">${analog()}<div class="cc-tx"><span class="cc-l"><span class="ldot"></span>Live · Karachi</span><b class="cc-d" id="clkDate">${nowD()}</b></div></div>`;
 function dashTabsBar(ALL){
   return `<div class="dtabs fade-up" role="tablist">${DTABS.map(([t,l])=>{const B=ALL.filter(b=>b.type===t),od=B.filter(b=>deadline(b)?.state==='overdue').length,en=B.filter(isDone).length,ac=activeOf(B).length,na=B.filter(b=>b.house==='NA').length,sen=B.filter(b=>b.house==='Senate').length;
-    return `<button class="dtab ${state.dTab===t?'on':''}" style="--soft:${TAB_SOFT[t]}" role="tab" aria-selected="${state.dTab===t}" onclick="setDTab('${t}')"><span class="dt-top"><span class="dt-name">${l}</span><em>${B.length}</em></span><span class="dt-stats"><span><b>${na}</b>National Assembly</span><span><b>${sen}</b>Senate</span></span></button>`}).join('')}${clockCard()}</div>`;
+    return `<button class="dtab ${state.dTab===t?'on':''}" style="--soft:${TAB_SOFT[t]};--tint:${TAB_TINT[t]};--acc:${TAB_ACC[t]}" role="tab" aria-selected="${state.dTab===t}" onclick="setDTab('${t}')"><span class="dt-top"><span class="dt-name">${l}</span><em>${B.length}</em></span><span class="dt-stats"><span><b>${na}</b>National Assembly</span><span><b>${sen}</b>Senate</span></span></button>`}).join('')}${clockCard()}</div>`;
 }
 
 /* ---------- drill-through: click any bar / slice / cell to filter every chart ---------- */
