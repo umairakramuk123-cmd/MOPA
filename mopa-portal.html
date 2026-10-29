@@ -2295,8 +2295,6 @@ function cStageWise(id,t,B){const st=STAGES[t],m=MOB();
 function cOutcome(id,B,t){const o=['Pending','Passed','Deferred','Withdrawn','Assented'];
   donut(id,['Pending','Passed','Deferred','Withdrawn','Assented'],o.map(x=>B.filter(b=>outcome(b)===x).length),['#94a3b8','#14b8a6','#f59e0b','#f43f5e','#059669'],t==='JS'?'Decisions':'Bills',H_MD-30);
   Q[Q.length-1][1].drill=i=>drill('outcome',o[i])}
-function cMiles(id,t,B){const F=DF[t].flatMap(sec=>sec.fields.filter(f=>HAS_D(f.type)).map(f=>[sec.name,f.label]));
-  chart(id,{chart:{type:'bar',height:F.length*22+50},series:[{name:'Bills',data:F.map(([s,l])=>dfCount(B,s,l))}],xaxis:{categories:F.map(([,l])=>l)},yaxis:{labels:{maxWidth:260}},plotOptions:{bar:{horizontal:true,barHeight:'70%',distributed:true,borderRadius:4}},colors:STG_COL(F.length),dataLabels:{enabled:true}})}
 function cHouseProg(id,t,B){const M=MILES[t].filter(m=>!/Assented|Notification|Endorsement|Issuance/.test(m[2]));const H=[['NA','National Assembly','#2563eb'],['Senate','Senate','#10b981']];
   chart(id,{chart:{type:'bar',height:H_SM},series:H.map(([h,n])=>({name:n,data:M.map(([s,l])=>dfCount(B.filter(b=>b.house===h),s,l))})),xaxis:{categories:M.map(m=>MILE_SHORT[m[2]]||m[2]),labels:{rotate:-30,rotateAlways:true,trim:false}},colors:H.map(x=>x[2]),plotOptions:{bar:{columnWidth:'66%',borderRadius:4}},legend:{position:'top'},drill:(i,s)=>drill('house',H[s][0])})}
 /* All 37 Ministries/Divisions in one compact column chart, stacked by the most urgent pending action */
@@ -2409,7 +2407,7 @@ function dashPanel(t,B0,o={}){
   const name=DTABS.find(x=>x[0]===t)[1],B=applyDrill(B0);DRILL_IDS=B.map(b=>b.id);const db=drillBar(t,B.length);
   if(!B0.length)return `<div class="card">${empty(`No ${name} in this view`,o.emptyMsg||'Nothing has been recorded under this workflow yet.',DTABS.find(x=>x[0]===t)[2])}</div>`;
   if(!B.length)return db+`<div class="card">${empty('Nothing matches this drill-through','Remove a filter chip above to widen the view.','ri-filter-off-line')}</div>`;
-  cStageWise('dStage',t,B);cOutcome('dOut',B,t);cMiles('dMiles',t,B);cAgeCat('dAgeC',B,t!=='JS'&&o.ministries!==false&&!MOB()?395:H_SM);cActivity('dAct',B);
+  cStageWise('dStage',t,B);cOutcome('dOut',B,t);cAgeCat('dAgeC',B,t!=='JS'&&o.ministries!==false&&!MOB()?395:H_SM);cActivity('dAct',B);
   const mins=o.ministries!==false;if(mins)cMinBar('dMin',B);
   const stats=`<div class="grid g-stats s-compact">${tabStats(t,B).join('')}</div>`;
   const minCard=mins?box('dMin','Pending actions by Ministry / Division',`All ${MINISTRIES.length} Ministries / Divisions (${new Set(B.map(b=>b.ministry)).size} with Bills) · click a column to drill`,'span2'):box('dAct','Month-by-month activity','Bills registered, passed and assented in the last 12 months','span2');
@@ -2419,7 +2417,7 @@ function dashPanel(t,B0,o={}){
     <div class="grid g-3 mt">${box('dStage','Where joint sitting bills are now','How many bills are at each step. Click a bar to see them.','span2')}${box('dOut','What happened to each bill','Passed, deferred, withdrawn or assented')}</div>
     <div class="grid g-3 mt">${minCard}${box('dCoB','Bills with the Committee on Bills','Referred, in committee, report presented or withdrawn')}</div>
     <div class="grid g-3 mt">${box('dKind','Official vs Non-Official','Who introduced the bill')}${box('dAssent','Bills waiting for the President','Endorsed, assented, notified and printed in the Gazette')}${box('dAgeC','How long bills have waited','Days since the bill reached its current stage')}</div>
-    <div class="grid g-3 mt">${actCard}${box('dMiles','Data fields filled in','Bills with each BRD §9 date field recorded',"span2")}</div></div>`;
+    <div class="grid g-3 mt">${actCard}</div></div>`;
   }
   cHouseProg('dHouse',t,B);const ext=cSC('dSC',t,B);cOtherHouse('dOH',t,B);
   const third=t==='PMB'?(cA74('dA74',B),box('dA74','Article 74 (Private Members’ Bills)','Has the Ministry replied, and has Cabinet consent come?')):(cAssent('dAssent',t,B),box('dAssent','Bills waiting for the President','Endorsed, assented, notified and printed in the Gazette'));
@@ -2428,7 +2426,7 @@ function dashPanel(t,B0,o={}){
   <div class="grid g-3 mt">${box('dSC','Bills with the Standing Committee: on time?',`Is each bill within its time limit? 30 days (NA), 60 days (Senate)${ext?` · ${plural(ext,'extension')} granted`:''}`)}${box('dOH','Bills sent to the other House','Is each bill within its 90-day limit?')}${third}</div>
   <div class="grid g-3 mt">${minCard}${box('dAgeC','How long bills have waited','Days since the bill reached its current stage')}</div>
   ${(()=>{const r4=t==='PMB'?(cAssent('dAssent',t,B),box('dAssent','Bills waiting for the President','Endorsed, assented, notified and printed in the Gazette')):(mins?box('dAct','Month-by-month activity','Bills registered, passed and assented in the last 12 months'):'');
-    return `<div class="grid ${r4?'g-3':'g-11'} mt">${box('dHouse','National Assembly vs Senate','Where bills from each House have reached')}${box('dMiles','Data fields filled in','Bills with each BRD §9 date field recorded',"span2")}${r4}</div>${t==='PMB'&&mins?`<div class="grid mt">${box('dAct','Month-by-month activity','Bills registered, passed and assented in the last 12 months')}</div>`:''}`})()}
+    return `<div class="grid ${r4?'g-3':'g-11'} mt">${box('dHouse','National Assembly vs Senate','Where bills from each House have reached')}${r4}</div>${t==='PMB'&&mins?`<div class="grid mt">${box('dAct','Month-by-month activity','Bills registered, passed and assented in the last 12 months')}</div>`:''}`})()}
   </div>`;
 }
 
