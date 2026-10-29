@@ -1217,6 +1217,47 @@ i[data-ic]>svg{width:1em;height:1em;fill:currentColor}
 .dtabs.dtabs .dtab{min-height:190px;padding:22px 22px 20px;gap:18px}.dtabs.dtabs .dt-name{font-size:19px}.dtabs.dtabs .dtab em{font-size:30px;padding:6px 16px;border-radius:12px}.dtabs.dtabs .dt-stats{gap:14px}.dtabs.dtabs .dt-stats b{font-size:40px;line-height:1.05;display:block}.dtabs.dtabs .dt-stats span{font-size:14px}@media (max-width:760px){.dtabs.dtabs .dtab{min-height:0}}
 .xbar.xbar{background:linear-gradient(135deg,#f0fdf8 0%,#f1f8ff 55%,#f5f3ff 100%)!important;border-color:rgba(167,243,208,.6)}
 .drillhint.drillhint-only{justify-content:flex-end;margin:0 0 12px}.view-b i{color:#fff!important}
+
+/* ---- login: matches the reference layout (photo, dark green overlay, glass card) ---- */
+.lx-bg::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(4,38,30,.92) 0%,rgba(4,38,30,.66) 46%,rgba(4,38,30,.80) 100%)}
+.lx{position:relative}
+.lx-tr{position:absolute;top:22px;right:34px;width:92px;height:92px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.22);display:grid;place-items:center}
+.lx-tr .emb{width:68px;height:68px}
+.lx-wel{display:block;font-size:20px;color:#e5e7eb;margin:0 0 10px}
+.lx-hero h1{font-size:46px;line-height:1.12;margin:0}
+.lx-desc{font-size:17px;line-height:1.7;color:#e5e7eb;max-width:520px;margin:26px 0 0}
+.lx-pow{margin-top:auto;padding-top:64px;display:flex;flex-direction:column;gap:2px;color:#e5e7eb}
+.lx-pow span{font-size:14px;color:#d1d5db}
+.lx-pow b{font-size:17px;font-weight:700;color:#fff}
+.lx-card{background:rgba(3,30,24,.42);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.24);box-shadow:0 30px 70px -30px rgba(0,0,0,.6);border-radius:22px;padding:26px 36px 30px;color:#fff}
+.lx-card::before{display:none}
+.lx-card .lp-mbrand{display:flex;color:#fff;justify-content:center;text-align:left}
+.lx-card .lp-mbrand b{color:#fff}
+.lx-card .lp-mbrand span{color:#d1d5db}
+.lx-card h2{color:#fff}
+.lx-lock{width:66px;height:66px;border-radius:50%;margin:14px auto 10px;background:#4ade80;display:grid;place-items:center;box-shadow:0 12px 26px -10px rgba(74,222,128,.75)}
+.lx-lock i{font-size:30px;color:#fff}
+.lx-card .lx-h{text-align:center;color:#4ade80;font-size:26px;font-weight:700;margin:0}
+.lx-card .sub{text-align:center;color:#fff;font-weight:600;margin:6px 0 22px}
+.lx-card .field{display:block;margin-bottom:16px}
+.lx-card .field>span{display:block;color:#fff;font-size:14px;font-weight:600;margin-bottom:7px}
+.lx-card .inp-ic i{color:#fff}
+.lx-card .input{background:transparent;border:1.5px solid rgba(255,255,255,.8);border-radius:999px;color:#fff;height:48px}
+.lx-card .input::placeholder{color:rgba(255,255,255,.72)}
+.lx-card .input:focus{border-color:#4ade80;box-shadow:0 0 0 3px rgba(74,222,128,.25)}
+.lx-card .eye{color:#fff}
+.lx-card .chk{color:#fff}
+.lx-card .chk input{accent-color:#4ade80}
+.lx-card .link{color:#4ade80}
+.lx-card .row-between{margin:4px 0 20px}
+.lx-card .btn-primary{background:linear-gradient(90deg,#84cc16 0%,#22c55e 55%,#16a34a 100%);border:0;border-radius:999px;height:50px;font-size:16px;font-weight:700;box-shadow:0 14px 26px -14px rgba(34,197,94,.9)}
+.lx-card .demo{border-top-color:rgba(255,255,255,.25)}
+.lx-card .demo>span{color:#e5e7eb}
+.lx-card .demo-list button{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.28);color:#fff}
+.lx-card .demo-list button.on{background:rgba(74,222,128,.2);border-color:#4ade80;color:#fff}
+.lx-card .otp input{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.8)}
+.lx-card .hint,.lx-card .muted{color:#e5e7eb}
+@media (max-width:960px){.lx-tr{display:none}}
 </style>
 </head>
 <body>
@@ -1230,6 +1271,7 @@ i[data-ic]>svg{width:1em;height:1em;fill:currentColor}
     <div class="lx-grid"></div>
   </div>
   <div class="lx">
+    <div class="lx-tr" aria-hidden="true"><div class="emb"></div></div>
     <div class="lx-left">
       <div class="lx-brand">
         <div class="lx-orbit">
@@ -1239,28 +1281,25 @@ i[data-ic]>svg{width:1em;height:1em;fill:currentColor}
         <div><b>Government of Pakistan</b><span>Ministry of Parliamentary Affairs</span></div>
       </div>
       <div class="lx-hero">
+        <span class="lx-wel">Welcome To,</span>
         <h1>Legislative Monitoring Dashboard</h1>
-        <ul class="lx-lines">
-          <li>Track every Bill from registration to Gazette notification.</li>
-          <li>Monitor Constitutional deadlines and Ministry responses in one place.</li>
-          <li>Built for MoPA, Ministries and Divisions across Pakistan.</li>
-        </ul>
+        <p class="lx-desc">A centralized platform for tracking Bills from registration to Gazette notification, enabling real-time collaboration across Ministries, Divisions and both Houses.</p>
       </div>
+      <div class="lx-pow"><span>Powered by</span><b>National Information Technology Board</b></div>
     </div>
 
     <div class="lp-card lx-card" id="lgCard">
       <div class="lg-ok" id="lgOk"><div><div class="ck"><i class="ri-check-line"></i></div><b>Signed in</b><span class="muted">Opening your dashboard…</span></div></div>
       <div class="lp-mbrand"><div class="emb"></div><div><b>Ministry of Parliamentary Affairs</b><span>Legislative Monitoring Dashboard</span></div></div>
       <div class="step active" data-s="1">
-        <span class="lx-hello">Welcome back</span>
-        <h2>Sign in to your account</h2>
-        <p class="sub">Use the account issued to you by MoPA.</p>
+        <div class="lx-lock"><i class="ri-lock-line"></i></div>
+        <h2 class="lx-h">Login</h2>
+        <p class="sub">Sign in to access the Legislative Monitoring Dashboard</p>
         <div class="lp-err" id="lgErr"><i class="ri-error-warning-line"></i><span></span></div>
         <label class="field"><span>User name</span><div class="inp-ic"><i class="ri-user-3-line"></i><input class="input" id="lgUser" autocomplete="username" placeholder="e.g. hamza.iqbal"></div></label>
         <label class="field"><span>Password</span><div class="inp-ic"><i class="ri-lock-2-line"></i><input class="input" type="password" id="lgPass" autocomplete="current-password" placeholder="••••••••"><button type="button" class="eye" onclick="togglePw()" aria-label="Show password"><i class="ri-eye-off-line" id="pwI"></i></button></div></label>
         <div class="row-between"><label class="chk"><input type="checkbox"> Remember me</label><a class="link" onclick="forgotPw()">Forgot password?</a></div>
         <button class="btn btn-primary btn-block" id="lgBtn" onclick="lgSubmit()">Sign in <i class="ri-arrow-right-line"></i></button>
-        <div class="lx-secure"><i class="ri-lock-line"></i>Encrypted connection · OTP for sensitive roles</div>
         <div class="demo"><span>Demo accounts — click one to fill the form</span><div class="demo-list" id="demoList"></div></div>
       </div>
       <div class="step" data-s="2">
