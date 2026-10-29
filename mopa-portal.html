@@ -2499,6 +2499,7 @@ function dashPanel(t,B0,o={}){
   ${sec('04','House comparison &amp; monthly trend','Progress by House of origin and monthly movement of Bills')}
   ${(()=>{const r4=t==='PMB'?(cAssent('dAssent',t,B),box('dAssent','Bills waiting for the President','Endorsed, assented, notified and printed in the Gazette')):(mins?box('dAct','Month-by-month activity','Bills registered, passed and assented in the last 12 months'):'');
     return `<div class="grid ${r4?'g-3':'g-11'} mt">${box('dHouse','National Assembly vs Senate','Where bills from each House have reached')}${r4}</div>${t==='PMB'&&mins?`<div class="grid mt">${box('dAct','Month-by-month activity','Bills registered, passed and assented in the last 12 months')}</div>`:''}`})()}
+  ${o.extra||''}
   </div>`;
 }
 
@@ -2523,6 +2524,7 @@ function dashFilters(){
 function dashMoPA(){
   const t=state.dTab,B=xF(perF(BILLS));
   return `
+  ${dashHead()}
   ${dashFilters()}
   ${dashTools()}
   ${dashTabsBar(B)}
@@ -2530,37 +2532,40 @@ function dashMoPA(){
 }
 function dashExec(){
   const x=state.x;x.view='ALL';const ALL=xF(perF(execBills())),r=ROLE(),t=state.dTab,B=ALL.filter(b=>b.type===t);
-  const head=`<div class="ph"><div><span class="eyebrow">Executive Dashboard</span><h1>${greet()}, ${first()}</h1><p>Stage-wise status, ageing, Standing Committee pendency, transmitted-Bill clocks and pending decisions — for Official Bills, Non-Official Bills and Joint Sitting.</p></div>${r.readonly?'<span class="pill p-blue"><i class="ri-lock-line"></i>View only</span>':''}</div>`;
-  return head+dashFilters()+dashTools()+dashTabsBar(ALL)+dashPanel(t,B,{ministries:!x.ministry,emptyMsg:xOn()?NOMATCH:undefined});
+  return dashHead()+dashFilters()+dashTools()+dashTabsBar(ALL)+dashPanel(t,B,{ministries:!x.ministry,emptyMsg:xOn()?NOMATCH:undefined});
 }
 function dashMinistry(){
   const B=xF(perF(visibleBills())),k=kpis(B),r=ROLE(),due=B.filter(responseDue),sent=B.reduce((a,b)=>a+b.responses.length,0),t=state.dTab;
   donut('chMinResp',['Replies sent','Replies due'],[sent,due.length],['#2563eb','#f43f5e'],'Replies',260);
   const bk=BUCKETS.filter(x=>B.some(b=>bucket(b)===x));donut('chMinMix',bk,bk.map(x=>B.filter(b=>bucket(b)===x).length),null,'Bills',260);
   const F=B.map(flagOf),n=f=>F.filter(x=>x.t===f).length;
-  return `
-  ${dashFilters()}
+  const extra=`${sec('05','Your Ministry at a glance','Replies to MoPA and the stage of your Ministry’s bills')}
   <div class="flags fade-up"><div class="fl r"><i class="ri-alarm-warning-line"></i><div><b>${n('r')}</b><span>Red — overdue / escalated</span></div></div><div class="fl y"><i class="ri-timer-line"></i><div><b>${n('y')}</b><span>Yellow — reminder, reply due</span></div></div><div class="fl g"><i class="ri-checkbox-circle-line"></i><div><b>${n('g')}</b><span>Green — on track / actioned</span></div></div></div>
-  <div class="grid g-11">${chartCard('chMinResp','Ministry replies','Replies sent to MoPA, and replies still due')}${chartCard('chMinMix','Your bills by stage','How many of your Ministry’s bills are at each step')}</div>
-  <div class="mt"></div>
+  <div class="grid g-11 mt">${box('chMinResp','Ministry replies','Replies sent to MoPA, and replies still due')}${box('chMinMix','Your bills by stage','How many of your Ministry’s bills are at each step')}</div>`;
+  return `
+  ${dashHead()}
+  ${dashFilters()}
   ${dashTools()}
   ${dashTabsBar(B)}
-  ${dashPanel(t,B.filter(b=>b.type===t),{ministries:false,emptyMsg:xOn()?NOMATCH:'MoPA has not shared any Bill of this type with your Ministry.'})}`;
+  ${dashPanel(t,B.filter(b=>b.type===t),{ministries:false,extra,emptyMsg:xOn()?NOMATCH:'MoPA has not shared any Bill of this type with your Ministry.'})}`;
 }
 function dashLaw(){
   const B=xF(perF(BILLS)),pend=B.filter(b=>!b.lawCleared),done=B.length-pend.length,t=state.dTab;
   chart('chLaw',{chart:{type:'radialBar',height:270},series:[B.length?Math.round(done/B.length*100):0],labels:['Cleared'],colors:['#059669']});
   const c=x=>B.filter(b=>b.type===x);
   chart('chLawT',{chart:{type:'bar',height:270,stacked:true},series:[{name:'Cleared',data:['OB','PMB','JS'].map(x=>c(x).filter(b=>b.lawCleared).length)},{name:'Pending',data:['OB','PMB','JS'].map(x=>c(x).filter(b=>!b.lawCleared).length)}],xaxis:{categories:['Official Bills','Non-Official Bills','Joint Sitting']},colors:['#059669','#f59e0b'],legend:{position:'top'}});
+  const extra=`${sec('05','Legal check','Whether Law & Justice has cleared each bill, and what is still waiting')}
+  <div class="grid g-12 mt">${box('chLaw','Legal check done','Share of bills cleared by Law & Justice')}${box('chLawT','Legal check by bill type','Cleared vs still waiting')}</div>`;
   return `
+  ${dashHead()}
   ${dashFilters()}
-  <div class="grid g-12">${chartCard('chLaw','Legal check done','Share of bills cleared by Law & Justice')}${chartCard('chLawT','Legal check by bill type','Cleared vs still waiting')}</div>
-  <div class="mt"></div>
   ${dashTools()}
   ${dashTabsBar(B)}
-  ${dashPanel(t,B.filter(b=>b.type===t),{emptyMsg:xOn()?NOMATCH:undefined})}`;
+  ${dashPanel(t,B.filter(b=>b.type===t),{extra,emptyMsg:xOn()?NOMATCH:undefined})}`;
 }
 
+const DASH_TITLE={admin:'MoPA Dashboard',dm:'MoPA Dashboard',sec:'Executive Dashboard',pmo:'Executive Dashboard',min:'Ministry Dashboard',law:'Law & Justice Dashboard'};
+const dashHead=()=>`<div class="ph dash-ph fade-up"><div><span class="eyebrow">${DASH_TITLE[state.role]||'Dashboard'}</span><h1>Legislative Monitoring</h1><p>Stage-wise status, Standing Committee pendency, transmitted-Bill clocks and pending decisions for Official, Non-Official and Joint Sitting Bills.</p></div>${ROLE().readonly?'<span class="pill p-blue"><i class="ri-lock-line"></i>View only</span>':''}</div>`;
 const fieldLabel=(b,k)=>{const [si,fi]=k.split('.').map(Number);return DF[b.type][si]?.fields[fi]?.label||''};
 
 /* =========================================================
