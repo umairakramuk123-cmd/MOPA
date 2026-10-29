@@ -1167,6 +1167,19 @@ i[data-ic]>svg{width:1em;height:1em;fill:currentColor}
 .dtabs .dt-stats{grid-template-columns:repeat(2,minmax(0,auto))}
 
 .sec-head:not(:first-child){margin-top:56px;padding-top:28px;border-top:1px dashed rgba(15,23,42,.14)}
+
+.clockcard{flex-direction:row;align-items:center;gap:14px}
+.clockcard .analog{width:84px;height:84px;flex:none}
+.clockcard .hand{transform-box:view-box;transform-origin:50px 50px;transition:transform .25s cubic-bezier(.4,2.2,.6,1)}
+.clockcard .cc-tx{display:flex;flex-direction:column;gap:6px;min-width:0}
+.clockcard .cc-d{font-size:14px;font-weight:700;color:#e2e8f0;letter-spacing:.01em}
+.clockcard .cc-l{font-size:11px}
+@media (max-width:1100px){.clockcard{flex-direction:row}}
+
+.dtabs.dtabs{grid-template-columns:repeat(3,minmax(0,1fr)) minmax(270px,1.1fr)}
+.clockcard .cc-l,.clockcard .cc-d{white-space:nowrap}
+.clockcard .cc-d{font-size:13px}
+@media (max-width:1100px){.dtabs.dtabs{grid-template-columns:repeat(3,minmax(0,1fr))}}
 </style>
 </head>
 <body>
@@ -2417,7 +2430,7 @@ const PERIODS=[['all','All time'],['year','This year'],['180','Last 6 months'],[
 state.per=state.per||'all';
 const perF=B=>state.per==='all'?B:B.filter(b=>{const r=new Date(b.reg);return state.per==='year'?r.getFullYear()===TODAY.getFullYear():(TODAY-r)/DAY<=+state.per});
 function setPer(p){state.per=p;state.drill=[];render()}
-if(!window._clk)window._clk=setInterval(()=>{const e=document.getElementById('clkBig'),d=document.getElementById('clkDate');if(e)e.textContent=nowT();if(d)d.textContent=nowD()},1000);
+if(!window._clk)window._clk=setInterval(()=>{const d=document.getElementById('clkDate');if(d)d.textContent=nowD();setHands()},1000);
 function dashTools(){return `<div class="dtools fade-up"><span class="asof"><i class="ri-time-line"></i>Data as of <b>${TODAY.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}, ${TODAY.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</b></span>
   <div class="seg sm">${PERIODS.map(([v,l])=>`<button class="${state.per===v?'on':''}" onclick="setPer('${v}')">${l}</button>`).join('')}</div>
   <div class="dt-act"><button class="btn btn-sm" onclick="printDash()"><i class="ri-printer-line"></i>Print</button><button class="btn btn-sm" onclick="downloadDash()"><i class="ri-download-2-line"></i>Download summary</button></div></div>`}
@@ -2434,8 +2447,11 @@ function viewDrillBills(t){state.tab=t;state.f={q:'',ministry:'',house:'',status
 /* ---------- tab bar: one card per workflow, with live counts ---------- */
 const TAB_SOFT={OB:'#ecfdf5',PMB:'#eff6ff',JS:'#eef2ff'};
 const nowT=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Asia/Karachi'});
-const nowD=()=>new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Karachi'});
-const clockCard=()=>`<div class="clockcard"><span class="cc-l"><span class="ldot"></span>Live · Karachi time</span><b id="clkBig">${nowT()}</b><span class="cc-d" id="clkDate">${nowD()}</span></div>`;
+const nowD=()=>new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Karachi'});
+const ticks=[...Array(12)].map((_,i)=>`<line x1="50" y1="6" x2="50" y2="${i%3===0?13:10}" transform="rotate(${i*30} 50 50)" stroke="#a7f3d0" stroke-width="${i%3===0?2.5:1.2}" stroke-linecap="round"/>`).join('');
+const analog=()=>`<svg class="analog" viewBox="0 0 100 100" aria-label="Analog clock"><circle cx="50" cy="50" r="46" fill="rgba(255,255,255,.08)" stroke="rgba(167,243,208,.5)" stroke-width="2"/>${ticks}<g id="hH" class="hand"><line x1="50" y1="54" x2="50" y2="28" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/></g><g id="hM" class="hand"><line x1="50" y1="56" x2="50" y2="18" stroke="#fff" stroke-width="3" stroke-linecap="round"/></g><g id="hS" class="hand"><line x1="50" y1="62" x2="50" y2="12" stroke="#34d399" stroke-width="1.6" stroke-linecap="round"/></g><circle cx="50" cy="50" r="3.2" fill="#34d399"/></svg>`;
+function setHands(){const n=new Date(),h=n.getHours()%12,m=n.getMinutes(),sec=n.getSeconds(),ms=n.getMilliseconds();const hd=document.getElementById('hH'),md=document.getElementById('hM'),sd=document.getElementById('hS');if(hd)hd.style.transform=`rotate(${(h+m/60)*30}deg)`;if(md)md.style.transform=`rotate(${(m+sec/60)*6}deg)`;if(sd)sd.style.transform=`rotate(${(sec+ms/1000)*6}deg)`}
+const clockCard=()=>`<div class="clockcard">${analog()}<div class="cc-tx"><span class="cc-l"><span class="ldot"></span>Live · Karachi</span><b class="cc-d" id="clkDate">${nowD()}</b></div></div>`;
 function dashTabsBar(ALL){
   return `<div class="dtabs fade-up" role="tablist">${DTABS.map(([t,l])=>{const B=ALL.filter(b=>b.type===t),od=B.filter(b=>deadline(b)?.state==='overdue').length,en=B.filter(isDone).length,ac=activeOf(B).length,na=B.filter(b=>b.house==='NA').length,sen=B.filter(b=>b.house==='Senate').length;
     return `<button class="dtab ${state.dTab===t?'on':''}" style="--soft:${TAB_SOFT[t]}" role="tab" aria-selected="${state.dTab===t}" onclick="setDTab('${t}')"><span class="dt-top"><span class="dt-name">${l}</span><em>${B.length}</em></span><span class="dt-stats"><span><b>${na}</b>National Assembly</span><span><b>${sen}</b>Senate</span></span></button>`}).join('')}${clockCard()}</div>`;
