@@ -2383,10 +2383,8 @@ function cOtherHouse(id,t,B){const k=sIdx({type:t},'Other House'),T=B.filter(b=>
   Q[Q.length-1][1].drill=i=>i<3?drill('clock',['ok','soon','overdue'][i]):null}
 function cAgeCat(id,B,h){const A=activeOf(B);
   chart(id,{chart:{type:'bar',height:h||H_SM},series:[{name:'Bills',data:AGE_BANDS.map(([,a,z])=>A.filter(b=>ageing(b)>=a&&ageing(b)<=z).length)}],xaxis:{categories:AGE_BANDS.map(x=>x[0].replace(' days','')),title:{text:'days at current stage',style:{fontSize:'13px',fontWeight:600,color:'#64748b'}}},plotOptions:{bar:{columnWidth:'52%',distributed:true}},colors:['#10b981','#14b8a6','#0ea5e9','#f59e0b','#f43f5e'],dataLabels:{enabled:true},drill:i=>drill('age',AGE_BANDS[i][0])})}
-function cAssent(id,t,B){const F=t==='JS'?[['Assent','MoPA Endorsement for Assent','Endorsed'],["President's Decision",'Assented by the President','Assented'],['Notification','Notification by NA Secretariat','Notified'],['Notification','Gazette Copy of the Act','Gazette']]
-  :[['Assent','MoPA Endorsement for Assent','Endorsed'],["President's Decision",'Assented by the President','Assented'],["President's Decision",'Returned by President with Message','Returned'],['Notification','Notification Received by MoPA','Notified'],['Notification','Gazette Copy of Notified Act','Gazette']];
-  const V=F.map(([s,l])=>dfCount(B,s,l)),K=F.map((f,i)=>i).filter(i=>V[i]>0||i<2);
-  chart(id,{chart:{type:'bar',height:H_SM},series:[{name:'Bills',data:K.map(i=>V[i])}],xaxis:{categories:K.map(i=>F[i][2]),labels:{rotate:-30,rotateAlways:true,trim:false,hideOverlappingLabels:false}},plotOptions:{bar:{columnWidth:'52%',distributed:true}},colors:K.map(i=>['#6366f1','#059669','#f59e0b','#0ea5e9','#14b8a6'][i]),dataLabels:{enabled:true}})}
+function cAssent(id,t,B){const w=dfCount(B,'Assent','MoPA Endorsement for Assent'),a=dfCount(B,"President's Decision",'Assented by the President');
+  donut(id,['Waiting for signature','Assented'],[w,a],['#6366f1','#059669'],'Bills',H_SM-30)}
 function cActivity(id,B){const t=trendData(B);
   chart(id,{chart:{type:'area',height:230},series:[{name:'Registered',data:t.reg},{name:'Passed',data:t.passed},{name:'Assented',data:t.enacted}],xaxis:{categories:t.labels,tickAmount:6,labels:{rotate:0,trim:false}},colors:['#2563eb','#14b8a6','#059669'],stroke:{curve:'smooth',width:3},legend:{position:'top'},markers:{size:0,hover:{size:6}}})}
 /* Non-Official Bills: Article 74 compliance as one radial (3 rings) */
