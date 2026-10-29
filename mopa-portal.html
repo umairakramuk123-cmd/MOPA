@@ -2386,7 +2386,7 @@ function viewDrillBills(t){state.tab=t;state.f={q:'',ministry:'',house:'',status
 const TAB_SOFT={OB:'#ecfdf5',PMB:'#eff6ff',JS:'#eef2ff'};
 function dashTabsBar(ALL){
   return `<div class="dtabs fade-up" role="tablist">${DTABS.map(([t,l])=>{const B=ALL.filter(b=>b.type===t),od=B.filter(b=>deadline(b)?.state==='overdue').length,en=B.filter(isDone).length,ac=activeOf(B).length;
-    return `<button class="dtab ${state.dTab===t?'on':''}" style="--soft:${TAB_SOFT[t]}" role="tab" aria-selected="${state.dTab===t}" onclick="setDTab('${t}')"><span class="dt-top"><span class="dt-name">${l}</span><em>${B.length}</em></span><span class="dt-stats"><span><b>${ac}</b>in progress</span><span class="r"><b>${od}</b>overdue</span><span class="g"><b>${en}</b>assented</span></span></button>`}).join('')}</div>`;
+    return `<button class="dtab ${state.dTab===t?'on':''}" style="--soft:${TAB_SOFT[t]}" role="tab" aria-selected="${state.dTab===t}" onclick="setDTab('${t}')"><span class="dt-top"><span class="dt-name">${l}</span><em>${B.length}</em></span><span class="dt-stats"><span><b>${ac}</b>active</span><span class="r"><b>${od}</b>late</span><span class="g"><b>${en}</b>signed into law</span></span></button>`}).join('')}</div>`;
 }
 
 /* ---------- drill-through: click any bar / slice / cell to filter every chart ---------- */
