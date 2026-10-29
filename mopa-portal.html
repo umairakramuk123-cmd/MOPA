@@ -2524,7 +2524,7 @@ function dashFilters(){
 function dashMoPA(){
   const t=state.dTab,B=xF(perF(BILLS));
   return `
-  ${dashHead()}
+  
   ${dashFilters()}
   ${dashTools()}
   ${dashTabsBar(B)}
@@ -2532,7 +2532,7 @@ function dashMoPA(){
 }
 function dashExec(){
   const x=state.x;x.view='ALL';const ALL=xF(perF(execBills())),r=ROLE(),t=state.dTab,B=ALL.filter(b=>b.type===t);
-  return dashHead()+dashFilters()+dashTools()+dashTabsBar(ALL)+dashPanel(t,B,{ministries:!x.ministry,emptyMsg:xOn()?NOMATCH:undefined});
+  return dashFilters()+dashTools()+dashTabsBar(ALL)+dashPanel(t,B,{ministries:!x.ministry,emptyMsg:xOn()?NOMATCH:undefined});
 }
 function dashMinistry(){
   const B=xF(perF(visibleBills())),k=kpis(B),r=ROLE(),due=B.filter(responseDue),sent=B.reduce((a,b)=>a+b.responses.length,0),t=state.dTab;
@@ -2543,7 +2543,7 @@ function dashMinistry(){
   <div class="flags fade-up"><div class="fl r"><i class="ri-alarm-warning-line"></i><div><b>${n('r')}</b><span>Red — overdue / escalated</span></div></div><div class="fl y"><i class="ri-timer-line"></i><div><b>${n('y')}</b><span>Yellow — reminder, reply due</span></div></div><div class="fl g"><i class="ri-checkbox-circle-line"></i><div><b>${n('g')}</b><span>Green — on track / actioned</span></div></div></div>
   <div class="grid g-11 mt">${box('chMinResp','Ministry replies','Replies sent to MoPA, and replies still due')}${box('chMinMix','Your bills by stage','How many of your Ministry’s bills are at each step')}</div>`;
   return `
-  ${dashHead()}
+  
   ${dashFilters()}
   ${dashTools()}
   ${dashTabsBar(B)}
@@ -2557,15 +2557,13 @@ function dashLaw(){
   const extra=`${sec('05','Legal check','Whether Law & Justice has cleared each bill, and what is still waiting')}
   <div class="grid g-12 mt">${box('chLaw','Legal check done','Share of bills cleared by Law & Justice')}${box('chLawT','Legal check by bill type','Cleared vs still waiting')}</div>`;
   return `
-  ${dashHead()}
+  
   ${dashFilters()}
   ${dashTools()}
   ${dashTabsBar(B)}
   ${dashPanel(t,B.filter(b=>b.type===t),{extra,emptyMsg:xOn()?NOMATCH:undefined})}`;
 }
 
-const DASH_TITLE={admin:'MoPA Dashboard',dm:'MoPA Dashboard',sec:'Executive Dashboard',pmo:'Executive Dashboard',min:'Ministry Dashboard',law:'Law & Justice Dashboard'};
-const dashHead=()=>`<div class="ph dash-ph fade-up"><div><span class="eyebrow">${DASH_TITLE[state.role]||'Dashboard'}</span><h1>Legislative Monitoring</h1><p>Stage-wise status, Standing Committee pendency, transmitted-Bill clocks and pending decisions for Official, Non-Official and Joint Sitting Bills.</p></div>${ROLE().readonly?'<span class="pill p-blue"><i class="ri-lock-line"></i>View only</span>':''}</div>`;
 const fieldLabel=(b,k)=>{const [si,fi]=k.split('.').map(Number);return DF[b.type][si]?.fields[fi]?.label||''};
 
 /* =========================================================
