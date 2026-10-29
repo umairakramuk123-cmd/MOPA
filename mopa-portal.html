@@ -1216,6 +1216,7 @@ i[data-ic]>svg{width:1em;height:1em;fill:currentColor}
 .dtabs.dtabs{grid-template-columns:repeat(3,minmax(0,1fr))!important}@media (max-width:760px){.dtabs.dtabs{grid-template-columns:1fr!important}}
 .dtabs.dtabs .dtab{min-height:190px;padding:22px 22px 20px;gap:18px}.dtabs.dtabs .dt-name{font-size:19px}.dtabs.dtabs .dtab em{font-size:30px;padding:6px 16px;border-radius:12px}.dtabs.dtabs .dt-stats{gap:14px}.dtabs.dtabs .dt-stats b{font-size:40px;line-height:1.05;display:block}.dtabs.dtabs .dt-stats span{font-size:14px}@media (max-width:760px){.dtabs.dtabs .dtab{min-height:0}}
 .xbar.xbar{background:linear-gradient(135deg,#f0fdf8 0%,#f1f8ff 55%,#f5f3ff 100%)!important;border-color:rgba(167,243,208,.6)}
+.drillhint.drillhint-only{justify-content:flex-end;margin:0 0 12px}.view-b i{color:#fff!important}
 </style>
 </head>
 <body>
@@ -2469,7 +2470,7 @@ function undrill(i){if(i<0)state.drill=[];else state.drill.splice(i,1);render()}
 const applyDrill=B=>state.drill.reduce((L,d)=>L.filter(b=>DRILL[d.k][1](b,d.v)),B);
 const drillLabel=d=>d.k==='outcome'?OUT_LBL[d.v]:d.k==='house'?HOUSE_NAME[d.v]:d.k==='clock'?CLOCK_LBL[d.v]:d.v;
 function drillBar(t,n){const v=`<button class="btn btn-sm btn-primary view-b" onclick="viewDrillBills('${t}')"><i class="ri-eye-line"></i>View ${plural(n,'Bill')}</button>`;return state.drill.length?`<div class="drillbar fade-up"><span class="db-l"><i class="ri-cursor-line"></i>Drill-through</span>${state.drill.map((d,i)=>`<button class="dchip" onclick="undrill(${i})" title="Remove this filter"><small>${DRILL[d.k][0]}</small>${esc(drillLabel(d))}<i class="ri-close-line"></i></button>`).join('')}<button class="link-btn" onclick="undrill(-1)"><i class="ri-arrow-go-back-line"></i>Clear all</button>${v}</div>`
-  :`<div class="drillhint"><span><i class="ri-cursor-line"></i>Click a bar or slice to filter the charts below.</span>${v}</div>`}
+  :`<div class="drillhint drillhint-only">${v}</div>`}
 
 /* ---------- the panel shown under each tab: 4 compact rows ---------- */
 const sec=(no,h,p)=>`<div class="sec-head fade-up" data-no="${no}"><span class="sec-no">${no}</span><div><h2>${h}</h2><p>${p}</p></div></div>`;
