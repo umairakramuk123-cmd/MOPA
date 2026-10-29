@@ -1191,6 +1191,10 @@ i[data-ic]>svg{width:1em;height:1em;fill:currentColor}
 .lx-lines li{position:relative;padding-left:22px;font-size:17px;line-height:1.55;color:#d1fae5}
 .lx-lines li::before{content:'';position:absolute;left:0;top:.62em;width:9px;height:9px;border-radius:50%;background:#34d399;box-shadow:0 0 0 4px rgba(52,211,153,.2)}
 @media (max-width:900px){.lx-hero h1{font-size:34px}.lx-lines li{font-size:15px}}
+
+/* first section sits right under the hint bar: no extra gap or divider */
+.sec-head[data-no="01"]{margin:6px 4px 14px;padding-top:0;border-top:0}
+.dpanel{padding-top:16px}
 </style>
 </head>
 <body>
@@ -2455,7 +2459,7 @@ function drillBar(t,n){const v=`<button class="btn btn-sm btn-primary view-b" on
   :`<div class="drillhint"><span><i class="ri-cursor-line"></i>Click a bar or slice to filter the charts below.</span>${v}</div>`}
 
 /* ---------- the panel shown under each tab: 4 compact rows ---------- */
-const sec=(no,h,p)=>`<div class="sec-head fade-up"><span class="sec-no">${no}</span><div><h2>${h}</h2><p>${p}</p></div></div>`;
+const sec=(no,h,p)=>`<div class="sec-head fade-up" data-no="${no}"><span class="sec-no">${no}</span><div><h2>${h}</h2><p>${p}</p></div></div>`;
 const box=(id,h,p,cls='',extra='')=>`<div class="card cc fade-up ${cls}"><div class="card-h"><div><h3>${h}</h3>${p?`<p>${p}</p>`:''}</div>${extra}</div><div id="${id}"></div></div>`;
 function dashPanel(t,B0,o={}){
   const name=DTABS.find(x=>x[0]===t)[1],B=applyDrill(B0);DRILL_IDS=B.map(b=>b.id);const db=drillBar(t,B.length);
