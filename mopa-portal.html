@@ -2436,7 +2436,6 @@ state.per=state.per||'all';
 const perF=B=>state.per==='all'?B:B.filter(b=>{const r=new Date(b.reg);return state.per==='year'?r.getFullYear()===TODAY.getFullYear():(TODAY-r)/DAY<=+state.per});
 function setPer(p){state.per=p;state.drill=[];render()}
 function dashTools(){return `<div class="dtools fade-up"><span class="asof"><em>Live</em>Data as of <b>${TODAY.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}, ${TODAY.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</b></span>
-  <div class="seg sm">${PERIODS.map(([v,l])=>`<button class="${state.per===v?'on':''}" onclick="setPer('${v}')">${l}</button>`).join('')}</div>
   <div class="dt-act"><button class="btn btn-sm" onclick="printDash()"><i class="ri-printer-line"></i>Print</button><button class="btn btn-sm" onclick="downloadDash()"><i class="ri-download-2-line"></i>Download summary</button></div></div>`}
 function printDash(){document.body.classList.add('printing-dash');setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove('printing-dash'),400)},150)}
 function downloadDash(){const ALL=xF(perF(state.role==='min'?visibleBills():(state.role==='sec'||state.role==='pmo')?execBills():BILLS)),rows=[['Executive Dashboard Summary — Legislative Monitoring Dashboard'],['Data as of',TODAY.toLocaleString('en-GB')],['Period',PERIODS.find(p=>p[0]===state.per)[1]],[],['Workflow','Total Bills','In progress','At Standing Committee','In Other House','Overdue','Sent for assent','Assented']];
