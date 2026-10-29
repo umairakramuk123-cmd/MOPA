@@ -2443,15 +2443,6 @@ PAGES.dashboard=()=>{
 function dashMoPA(){
   const B=perF(BILLS),k=kpis(B),t=state.dTab;
   return `
-  <div class="hero hero-s fade-up"><div>
-    <span class="eb"><i class="ri-calendar-event-line"></i>${TODAY.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</span>
-    <h2>${greet()}, ${first()}</h2>
-    <p>${plural(k.total,'Bill')} tracked across ${new Set(B.map(b=>b.ministry)).size} Ministries / Divisions · ${k.overdue?`${plural(k.overdue,'Bill has','Bills have')} crossed a Committee or 90-day limit`:'no deadlines missed'} · ${plural(k.stance,'Ministry stance','Ministry stances')} awaited.</p>
-    <div class="hero-actions">
-      ${can('create')?`<button class="btn btn-solid-w" onclick="openRegister()"><i class="ri-add-circle-line"></i>Register New Bill</button>`:''}
-      <button class="btn btn-white" onclick="go('deadlines')"><i class="ri-timer-flash-line"></i>Deadlines &amp; Aging</button>
-      <button class="btn btn-white" onclick="go('reports')"><i class="ri-bar-chart-box-line"></i>Reports</button>
-    </div></div></div>
   ${dashTools()}
   ${dashTabsBar(B)}
   ${dashPanel(t,B.filter(b=>b.type===t))}`;
@@ -2475,12 +2466,6 @@ function dashMinistry(){
   const bk=BUCKETS.filter(x=>B.some(b=>bucket(b)===x));donut('chMinMix',bk,bk.map(x=>B.filter(b=>bucket(b)===x).length),null,'Bills',260);
   const F=B.map(flagOf),n=f=>F.filter(x=>x.t===f).length;
   return `
-  <div class="hero hero-s fade-up"><div>
-    <span class="eb"><i class="ri-building-2-line"></i>${esc(r.org)}</span>
-    <h2>${greet()}, ${first()}</h2>
-    <p>${due.length?`MoPA is waiting for your reply on ${plural(due.length,'Bill')}.`:'You have replied on every Bill MoPA has shared with you.'} Bills of your Ministry are view-only.</p>
-    <div class="hero-actions"><button class="btn btn-solid-w" onclick="state.tab='ALL';go('bills')"><i class="ri-chat-check-line"></i>Reply to MoPA</button><button class="btn btn-white" onclick="go('deadlines')"><i class="ri-timer-flash-line"></i>Deadlines &amp; Aging</button></div>
-  </div></div>
   <div class="flags fade-up"><div class="fl r"><i class="ri-alarm-warning-line"></i><div><b>${n('r')}</b><span>Red — overdue / escalated</span></div></div><div class="fl y"><i class="ri-timer-line"></i><div><b>${n('y')}</b><span>Yellow — reminder, reply due</span></div></div><div class="fl g"><i class="ri-checkbox-circle-line"></i><div><b>${n('g')}</b><span>Green — on track / actioned</span></div></div></div>
   <div class="grid g-11">${chartCard('chMinResp','Ministry replies','Replies sent to MoPA, and replies still due')}${chartCard('chMinMix','Your bills by stage','How many of your Ministry’s bills are at each step')}</div>
   <div class="mt"></div>
@@ -2494,12 +2479,6 @@ function dashLaw(){
   const c=x=>B.filter(b=>b.type===x);
   chart('chLawT',{chart:{type:'bar',height:270,stacked:true},series:[{name:'Cleared',data:['OB','PMB','JS'].map(x=>c(x).filter(b=>b.lawCleared).length)},{name:'Pending',data:['OB','PMB','JS'].map(x=>c(x).filter(b=>!b.lawCleared).length)}],xaxis:{categories:['Official Bills','Non-Official Bills','Joint Sitting']},colors:['#059669','#f59e0b'],legend:{position:'top'}});
   return `
-  <div class="hero hero-s fade-up"><div>
-    <span class="eb"><i class="ri-scales-3-line"></i>Law &amp; Justice Division</span>
-    <h2>${greet()}, ${first()}</h2>
-    <p>${pend.length?`${plural(pend.length,'Bill is','Bills are')} waiting for your legal check.`:'There are no Bills waiting for legal review.'}</p>
-    <div class="hero-actions"><button class="btn btn-solid-w" onclick="go('bills')"><i class="ri-scales-3-line"></i>Open Bills</button></div>
-  </div></div>
   <div class="grid g-12">${chartCard('chLaw','Legal check done','Share of bills cleared by Law & Justice')}${chartCard('chLawT','Legal check by bill type','Cleared vs still waiting')}</div>
   <div class="mt"></div>
   ${dashTools()}
