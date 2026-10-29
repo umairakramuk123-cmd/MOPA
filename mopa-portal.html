@@ -2481,9 +2481,8 @@ function dashPanel(t,B0,o={}){
   if(t==='JS'){cCoB('dCoB',B);cJSKind('dKind',B);cAssent('dAssent',t,B);
     return `<div class="dpanel" data-tab="JS">${db}${sec('01','Bill status','Where every Bill is now and how each one ended')}
     <div class="grid g-3 mt">${box('dStage','Where joint sitting bills are now','How many bills are at each step. Click a bar to see them.','span2')}${box('dOut','What happened to each bill','Passed, deferred, withdrawn or assented')}</div>
-    ${sec('02','Committee and assent','Joint Sitting Bills in committee, by house and by the President stage')}<div class="grid g-3 mt">${box('dCoB','Bills with the Committee on Bills','Referred, in committee, report presented or withdrawn')}</div>
-    <div class="grid g-3 mt">${box('dKind','Official vs Non-Official','Who introduced the bill')}${box('dAssent','Bills waiting for the President','Endorsed, assented, notified and printed in the Gazette')}</div>
-    <div class="grid g-3 mt">${actCard}</div></div>`;
+    ${sec('02','Committee and assent','Joint Sitting Bills in committee, by house and by the President stage')}<div class="grid g-11 mt">${box('dCoB','Bills with the Committee on Bills','Referred, in committee, report presented or withdrawn')}${box('dAssent','Bills waiting for the President','Endorsed, assented, notified and printed in the Gazette')}</div>
+    <div class="grid g-11 mt">${box('dKind','Official vs Non-Official','Who introduced the bill')}${box('dAct','Month-by-month activity','Bills registered, passed and assented in the last 12 months')}</div></div>`;
   }
   cHouseProg('dHouse',t,B);const ext=cSC('dSC',t,B);cOtherHouse('dOH',t,B);
   const third=t==='PMB'?(cA74('dA74',B),box('dA74','Article 74 (Private Members’ Bills)','Has the Ministry replied, and has Cabinet consent come?')):(cAssent('dAssent',t,B),box('dAssent','Bills waiting for the President','Endorsed, assented, notified and printed in the Gazette'));
