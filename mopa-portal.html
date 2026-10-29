@@ -1081,6 +1081,27 @@ i[data-ic]>svg{width:1em;height:1em;fill:currentColor}
 }
 @media (max-width:760px){.s-compact .stat .lbl{white-space:normal}}
 
+
+/* ===== MINIMAL KPI + HERO (clean professional) ===== */
+.s-compact .stat{display:block;min-height:0;padding:16px 18px 14px;background:#fff;color:var(--ink);border:1px solid var(--line2);border-top:3px solid var(--acc);border-radius:14px;box-shadow:0 1px 2px rgba(15,23,42,.04);transition:box-shadow .2s}
+.s-compact .stat::before,.s-compact .stat::after{display:none}
+.s-compact .stat:hover{transform:none;box-shadow:0 8px 20px -16px rgba(15,23,42,.35)}
+.s-compact .stat .stat-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.s-compact .stat .lbl{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;white-space:normal;line-height:1.3}
+.s-compact .stat .stat-top>i{color:var(--acc);font-size:18px;flex:none}
+.s-compact .stat .val{font-size:30px;font-weight:800;color:var(--ink);margin:8px 0 2px;line-height:1.1;letter-spacing:-.01em}
+.s-compact .stat .note{font-size:12.5px;opacity:1;color:var(--muted);margin:0;white-space:normal;display:block;line-height:1.4}
+.s-compact .stat .note span{margin-right:10px}
+.s-compact .stat .share{height:4px;background:#eef2f6;margin:12px 0 0;border-radius:99px;overflow:hidden}
+.s-compact .stat .share i{background:var(--acc)}
+.hero{background:#fff;color:var(--ink);border:1px solid var(--line2);box-shadow:none}
+.hero::before,.hero::after{display:none}
+.hero .eb{color:var(--muted);opacity:1}
+.hero h2{color:var(--ink)}
+.hero p{color:var(--muted);opacity:1}
+.hero .btn-solid-w{background:var(--ink);color:#fff}
+.hero .btn-white{background:#fff;color:var(--ink);border:1px solid var(--line2)}
+.dtab{box-shadow:none}
 </style>
 </head>
 <body>
@@ -1693,8 +1714,9 @@ function kpis(B){
     stance:f(b=>b.type==='PMB'&&!b.art74),transit:f(b=>/Transmitted|Other House/.test(stageName(b))),
     law:f(b=>!b.lawCleared),active:f(b=>b.status==='Active'),resp:f(responseDue)};
 }
-function stat(label,val,icon,grad,note,share,i){
-  return `<div class="stat fade-up" style="background:${grad};--d:${i*70}ms"><div class="stat-top"><div class="ic"><i class="${icon}"></i></div></div><div class="val" data-count="${val}">0</div><div class="lbl">${label}</div>${note?`<div class="note">${note}</div>`:''}<div class="share"><i data-w="${Math.round(Math.min(1,Math.max(0,share))*100)}"></i></div></div>`;
+const ACC={green:'#059669',main:'#059669',blue:'#2563eb',cyan:'#0891b2',indigo:'#4f46e5',amber:'#d97706',rose:'#e11d48',teal:'#0d9488',emb:'#047857'};
+function stat(label,val,icon,grad,note,share,i){const acc=ACC[(grad.match(/grad-(\w+)/)||[])[1]]||'#0d9488';
+  return `<div class="stat fade-up" style="--acc:${acc};--d:${i*60}ms"><div class="stat-top"><span class="lbl">${label}</span><i class="${icon}"></i></div><div class="val" data-count="${val}">0</div>${note?`<div class="note">${note}</div>`:''}<div class="share"><i data-w="${Math.round(Math.min(1,Math.max(0,share))*100)}"></i></div></div>`;
 }
 function countUp(){
   $$('[data-count]').forEach(el=>{const t=+el.dataset.count;let s=null;const step=ts=>{if(!s)s=ts;const p=Math.min(1,(ts-s)/900);el.textContent=Math.round(t*(1-Math.pow(1-p,3))).toLocaleString();if(p<1)requestAnimationFrame(step)};requestAnimationFrame(step)});
@@ -2223,8 +2245,8 @@ function cStageWise(id,t,B){const st=STAGES[t],m=MOB();
 function cOutcome(id,B,t){const o=['Pending','Passed','Deferred','Withdrawn','Assented'];
   donut(id,['Pending','Passed','Deferred','Withdrawn','Assented'],o.map(x=>B.filter(b=>outcome(b)===x).length),['#94a3b8','#14b8a6','#f59e0b','#f43f5e','#059669'],t==='JS'?'Decisions':'Bills',H_MD-30);
   Q[Q.length-1][1].drill=i=>drill('outcome',o[i])}
-function cMiles(id,t,B){const M=MILES[t];
-  chart(id,{chart:{type:'bar',height:H_SM},series:[{name:'Bills',data:M.map(([s,l])=>dfCount(B,s,l))}],xaxis:{categories:M.map(m=>MILE_SHORT[m[2]]||m[2])},yaxis:{labels:{maxWidth:210}},plotOptions:{bar:{horizontal:true,barHeight:'70%',distributed:true,borderRadius:4}},colors:STG_COL(M.length),dataLabels:{enabled:true}})}
+function cMiles(id,t,B){const F=DF[t].flatMap(sec=>sec.fields.filter(f=>HAS_D(f.type)).map(f=>[sec.name,f.label]));
+  chart(id,{chart:{type:'bar',height:F.length*22+50},series:[{name:'Bills',data:F.map(([s,l])=>dfCount(B,s,l))}],xaxis:{categories:F.map(([,l])=>l)},yaxis:{labels:{maxWidth:260}},plotOptions:{bar:{horizontal:true,barHeight:'70%',distributed:true,borderRadius:4}},colors:STG_COL(F.length),dataLabels:{enabled:true}})}
 function cHouseProg(id,t,B){const M=MILES[t].filter(m=>!/Assented|Notification|Endorsement|Issuance/.test(m[2]));const H=[['NA','National Assembly','#2563eb'],['Senate','Senate','#10b981']];
   chart(id,{chart:{type:'bar',height:H_SM},series:H.map(([h,n])=>({name:n,data:M.map(([s,l])=>dfCount(B.filter(b=>b.house===h),s,l))})),xaxis:{categories:M.map(m=>MILE_SHORT[m[2]]||m[2]),labels:{rotate:-30,rotateAlways:true,trim:false}},colors:H.map(x=>x[2]),plotOptions:{bar:{columnWidth:'66%',borderRadius:4}},legend:{position:'top'},drill:(i,s)=>drill('house',H[s][0])})}
 /* All 37 Ministries/Divisions in one compact column chart, stacked by the most urgent pending action */
@@ -2296,7 +2318,7 @@ const PERIODS=[['all','All time'],['year','This year'],['180','Last 6 months'],[
 state.per=state.per||'all';
 const perF=B=>state.per==='all'?B:B.filter(b=>{const r=new Date(b.reg);return state.per==='year'?r.getFullYear()===TODAY.getFullYear():(TODAY-r)/DAY<=+state.per});
 function setPer(p){state.per=p;state.drill=[];render()}
-function dashTools(){return `<div class="dtools fade-up"><span class="asof"><i class="ri-time-line"></i>Data as of <b>${TODAY.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}, ${TODAY.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</b><em>Live</em></span>
+function dashTools(){return `<div class="dtools fade-up"><span class="asof"><i class="ri-time-line"></i>Data as of <b>${TODAY.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}, ${TODAY.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</b></span>
   <div class="seg sm">${PERIODS.map(([v,l])=>`<button class="${state.per===v?'on':''}" onclick="setPer('${v}')">${l}</button>`).join('')}</div>
   <div class="dt-act"><button class="btn btn-sm" onclick="printDash()"><i class="ri-printer-line"></i>Print</button><button class="btn btn-sm" onclick="downloadDash()"><i class="ri-download-2-line"></i>Download summary</button></div></div>`}
 function printDash(){document.body.classList.add('printing-dash');setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove('printing-dash'),400)},150)}
@@ -2311,8 +2333,8 @@ function viewDrillBills(t){state.tab=t;state.f={q:'',ministry:'',house:'',status
 
 /* ---------- tab bar: one card per workflow, with live counts ---------- */
 function dashTabsBar(ALL){
-  cTypeMini('dMix',ALL);return `<div class="dtabs fade-up" role="tablist">${DTABS.map(([t,l,ic,g])=>{const B=ALL.filter(b=>b.type===t),od=B.filter(b=>deadline(b)?.state==='overdue').length,en=B.filter(isDone).length,ac=activeOf(B).length;
-    return `<button class="dtab ${state.dTab===t?'on':''}" role="tab" aria-selected="${state.dTab===t}" onclick="setDTab('${t}')"><span class="dt-ic" style="background:${g}"><i class="${ic}"></i></span><span class="dt-tx"><b>${l}</b><small><span>${ac} in progress</span><span class="r">${od} overdue</span><span class="g">${en} assented</span></small></span><em>${B.length}</em></button>`}).join('')}<div class="dmix"><div id="dMix"></div><div class="dmix-l"><b>All Bills · ${ALL.length}</b>${DTABS.map(([t,l],i)=>`<span><i style="background:${['#059669','#2563eb','#6366f1'][i]}"></i>${l.replace(' Bills','')} <b>${ALL.filter(b=>b.type===t).length}</b></span>`).join('')}</div></div></div>`;
+  return `<div class="dtabs fade-up" role="tablist">${DTABS.map(([t,l,ic,g])=>{const B=ALL.filter(b=>b.type===t),od=B.filter(b=>deadline(b)?.state==='overdue').length,en=B.filter(isDone).length,ac=activeOf(B).length;
+    return `<button class="dtab ${state.dTab===t?'on':''}" role="tab" aria-selected="${state.dTab===t}" onclick="setDTab('${t}')"><span class="dt-ic" style="background:${g}"><i class="${ic}"></i></span><span class="dt-tx"><b>${l}</b><small><span>${ac} in progress</span><span class="r">${od} overdue</span><span class="g">${en} assented</span></small></span><em>${B.length}</em></button>`}).join('')}</div>`;
 }
 
 /* ---------- drill-through: click any bar / slice / cell to filter every chart ---------- */
@@ -2328,7 +2350,7 @@ function undrill(i){if(i<0)state.drill=[];else state.drill.splice(i,1);render()}
 const applyDrill=B=>state.drill.reduce((L,d)=>L.filter(b=>DRILL[d.k][1](b,d.v)),B);
 const drillLabel=d=>d.k==='outcome'?OUT_LBL[d.v]:d.k==='house'?HOUSE_NAME[d.v]:d.k==='clock'?CLOCK_LBL[d.v]:d.v;
 function drillBar(t,n){const v=`<button class="btn btn-sm btn-primary view-b" onclick="viewDrillBills('${t}')"><i class="ri-eye-line"></i>View ${plural(n,'Bill')}</button>`;return state.drill.length?`<div class="drillbar fade-up"><span class="db-l"><i class="ri-cursor-line"></i>Drill-through</span>${state.drill.map((d,i)=>`<button class="dchip" onclick="undrill(${i})" title="Remove this filter"><small>${DRILL[d.k][0]}</small>${esc(drillLabel(d))}<i class="ri-close-line"></i></button>`).join('')}<button class="link-btn" onclick="undrill(-1)"><i class="ri-arrow-go-back-line"></i>Clear all</button>${v}</div>`
-  :`<div class="drillhint"><span><i class="ri-cursor-line"></i>Tip: click any bar or slice to drill through — every chart below updates to that selection.</span>${v}</div>`}
+  :`<div class="drillhint"><span><i class="ri-cursor-line"></i>Click a bar or slice to filter the charts below.</span>${v}</div>`}
 
 /* ---------- the panel shown under each tab: 4 compact rows ---------- */
 const box=(id,h,p,cls='',extra='')=>`<div class="card cc fade-up ${cls}"><div class="card-h"><div><h3>${h}</h3>${p?`<p>${p}</p>`:''}</div>${extra}</div><div id="${id}"></div></div>`;
@@ -2346,7 +2368,7 @@ function dashPanel(t,B0,o={}){
     <div class="grid g-3 mt">${box('dStage','Where joint sitting bills are now','How many bills are at each step. Click a bar to see them.','span2')}${box('dOut','What happened to each bill','Passed, deferred, withdrawn or assented')}</div>
     <div class="grid g-3 mt">${minCard}${box('dCoB','Bills with the Committee on Bills','Referred, in committee, report presented or withdrawn')}</div>
     <div class="grid g-3 mt">${box('dKind','Official vs Non-Official','Who introduced the bill')}${box('dAssent','Bills waiting for the President','Endorsed, assented, notified and printed in the Gazette')}${box('dAgeC','How long bills have waited','Days since the bill reached its current stage')}</div>
-    <div class="grid g-3 mt">${actCard}${box('dMiles','Key steps reached','How many bills have each step date recorded')}</div></div>`;
+    <div class="grid g-3 mt">${actCard}${box('dMiles','Data fields filled in','Bills with each BRD §9 date field recorded',"span2")}</div></div>`;
   }
   cHouseProg('dHouse',t,B);const ext=cSC('dSC',t,B);cOtherHouse('dOH',t,B);
   const third=t==='PMB'?(cA74('dA74',B),box('dA74','Article 74 (Private Members’ Bills)','Has the Ministry replied, and has Cabinet consent come?')):(cAssent('dAssent',t,B),box('dAssent','Bills waiting for the President','Endorsed, assented, notified and printed in the Gazette'));
@@ -2355,7 +2377,7 @@ function dashPanel(t,B0,o={}){
   <div class="grid g-3 mt">${box('dSC','Bills with the Standing Committee: on time?',`Is each bill within its time limit? 30 days (NA), 60 days (Senate)${ext?` · ${plural(ext,'extension')} granted`:''}`)}${box('dOH','Bills sent to the other House','Is each bill within its 90-day limit?')}${third}</div>
   <div class="grid g-3 mt">${minCard}${box('dAgeC','How long bills have waited','Days since the bill reached its current stage')}</div>
   ${(()=>{const r4=t==='PMB'?(cAssent('dAssent',t,B),box('dAssent','Bills waiting for the President','Endorsed, assented, notified and printed in the Gazette')):(mins?box('dAct','Month-by-month activity','Bills registered, passed and assented in the last 12 months'):'');
-    return `<div class="grid ${r4?'g-3':'g-11'} mt">${box('dHouse','National Assembly vs Senate','Where bills from each House have reached')}${box('dMiles','Key steps reached','How many bills have each step date recorded')}${r4}</div>${t==='PMB'&&mins?`<div class="grid mt">${box('dAct','Month-by-month activity','Bills registered, passed and assented in the last 12 months')}</div>`:''}`})()}
+    return `<div class="grid ${r4?'g-3':'g-11'} mt">${box('dHouse','National Assembly vs Senate','Where bills from each House have reached')}${box('dMiles','Data fields filled in','Bills with each BRD §9 date field recorded',"span2")}${r4}</div>${t==='PMB'&&mins?`<div class="grid mt">${box('dAct','Month-by-month activity','Bills registered, passed and assented in the last 12 months')}</div>`:''}`})()}
   </div>`;
 }
 
