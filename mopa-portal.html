@@ -1150,6 +1150,19 @@ i[data-ic]>svg{width:1em;height:1em;fill:currentColor}
 .dtools .btn:hover,.dtools button:hover{transform:translateY(-1px);box-shadow:0 10px 22px -12px rgba(15,23,42,.4)}
 .dpanel{box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 30px 60px -40px rgba(5,150,105,.35)}
 @media (max-width:760px){.dpanel{padding:14px;border-radius:22px}.sec-head{margin-top:22px}.sec-no{width:36px;height:36px;border-radius:12px}.sec-head h2{font-size:17px}}
+
+/* ===== WORKFLOW CARDS + LIVE CLOCK CARD (reference layout) ===== */
+.dtabs.dtabs{grid-template-columns:repeat(3,minmax(0,1fr)) minmax(230px,.8fr);gap:14px}
+.dtabs .dt-name{font-size:16px}
+.dtabs .dt-stats b{font-size:22px}
+.dtabs .dtab em{font-size:16px;padding:3px 11px}
+.dtabs .dtab{padding:16px 18px 14px}
+.clockcard{display:flex;flex-direction:column;justify-content:center;gap:6px;padding:16px 18px;border-radius:14px;background:linear-gradient(135deg,#064e3b 0%,#1e3a8a 100%);color:#fff;box-shadow:0 12px 26px -16px rgba(15,23,42,.5)}
+.clockcard .cc-l{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#a7f3d0}
+.clockcard b{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.02em;line-height:1.1}
+.clockcard .cc-d{font-size:13px;color:#cbd5e1}
+@media (max-width:1100px){.dtabs.dtabs{grid-template-columns:repeat(3,minmax(0,1fr))}.clockcard{grid-column:1/-1;flex-direction:row;align-items:center;justify-content:space-between;flex-wrap:wrap}}
+@media (max-width:760px){.dtabs.dtabs{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -2398,8 +2411,8 @@ const PERIODS=[['all','All time'],['year','This year'],['180','Last 6 months'],[
 state.per=state.per||'all';
 const perF=B=>state.per==='all'?B:B.filter(b=>{const r=new Date(b.reg);return state.per==='year'?r.getFullYear()===TODAY.getFullYear():(TODAY-r)/DAY<=+state.per});
 function setPer(p){state.per=p;state.drill=[];render()}
-if(!window._clk)window._clk=setInterval(()=>{const e=document.getElementById('clk');if(e)e.textContent=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Asia/Karachi'})},1000);
-function dashTools(){return `<div class="dtools fade-up"><span class="liveclk"><span class="ldot"></span><b id="clk">${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Asia/Karachi'})}</b><em>Live</em></span><span class="asof"><i class="ri-time-line"></i>Data as of <b>${TODAY.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}, ${TODAY.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</b></span>
+if(!window._clk)window._clk=setInterval(()=>{const e=document.getElementById('clkBig'),d=document.getElementById('clkDate');if(e)e.textContent=nowT();if(d)d.textContent=nowD()},1000);
+function dashTools(){return `<div class="dtools fade-up"><span class="asof"><i class="ri-time-line"></i>Data as of <b>${TODAY.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}, ${TODAY.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</b></span>
   <div class="seg sm">${PERIODS.map(([v,l])=>`<button class="${state.per===v?'on':''}" onclick="setPer('${v}')">${l}</button>`).join('')}</div>
   <div class="dt-act"><button class="btn btn-sm" onclick="printDash()"><i class="ri-printer-line"></i>Print</button><button class="btn btn-sm" onclick="downloadDash()"><i class="ri-download-2-line"></i>Download summary</button></div></div>`}
 function printDash(){document.body.classList.add('printing-dash');setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove('printing-dash'),400)},150)}
@@ -2414,9 +2427,12 @@ function viewDrillBills(t){state.tab=t;state.f={q:'',ministry:'',house:'',status
 
 /* ---------- tab bar: one card per workflow, with live counts ---------- */
 const TAB_SOFT={OB:'#ecfdf5',PMB:'#eff6ff',JS:'#eef2ff'};
+const nowT=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Asia/Karachi'});
+const nowD=()=>new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Karachi'});
+const clockCard=()=>`<div class="clockcard"><span class="cc-l"><span class="ldot"></span>Live · Karachi time</span><b id="clkBig">${nowT()}</b><span class="cc-d" id="clkDate">${nowD()}</span></div>`;
 function dashTabsBar(ALL){
   return `<div class="dtabs fade-up" role="tablist">${DTABS.map(([t,l])=>{const B=ALL.filter(b=>b.type===t),od=B.filter(b=>deadline(b)?.state==='overdue').length,en=B.filter(isDone).length,ac=activeOf(B).length;
-    return `<button class="dtab ${state.dTab===t?'on':''}" style="--soft:${TAB_SOFT[t]}" role="tab" aria-selected="${state.dTab===t}" onclick="setDTab('${t}')"><span class="dt-top"><span class="dt-name">${l}</span><em>${B.length}</em></span><span class="dt-stats"><span><b>${ac}</b>active</span><span class="r"><b>${od}</b>late</span><span class="g"><b>${en}</b>signed into law</span></span></button>`}).join('')}</div>`;
+    return `<button class="dtab ${state.dTab===t?'on':''}" style="--soft:${TAB_SOFT[t]}" role="tab" aria-selected="${state.dTab===t}" onclick="setDTab('${t}')"><span class="dt-top"><span class="dt-name">${l}</span><em>${B.length}</em></span><span class="dt-stats"><span><b>${ac}</b>active</span><span class="r"><b>${od}</b>late</span><span class="g"><b>${en}</b>signed into law</span></span></button>`}).join('')}${clockCard()}</div>`;
 }
 
 /* ---------- drill-through: click any bar / slice / cell to filter every chart ---------- */
