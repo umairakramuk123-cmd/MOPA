@@ -2349,19 +2349,19 @@ function tabStats(t,B){const k=kpis(B),A=activeOf(B),od=B.filter(b=>deadline(b)?
     stat('Signed into law',k.enacted,'ri-award-line','var(--grad-green)',`${B.filter(b=>stageName(b)==='Notified').length} in the Gazette`,sh(k.enacted),5)];
   if(t==='PMB'){const aw=B.filter(b=>!dfVal(b,'Pre-Admissibility / Advance Notice','Applicability of Article 74 (Ministry Stance)').yn).length,cr=B.filter(b=>dfVal(b,'Pre-Admissibility / Advance Notice','Consent of Federal Government (Received/Not)').yn==='Yes').length;return [
     stat('Non-Official Bills',B.length,'ri-user-star-line','var(--grad-blue)',`<span>NA ${k.na}</span><span>Senate ${k.sen}</span>`,1,0),
-    stat('Stance awaited',aw,'ri-chat-history-line','var(--grad-amber)','Applicability of Article 74',sh(aw),1),
-    stat('Cabinet consent',cr,'ri-shield-check-line','var(--grad-green)','Received from the Cabinet',sh(cr),2),
-    stat('In Committee',sc.length,'ri-team-line','var(--grad-teal)',`${sc.filter(b=>deadline(b)?.state==='overdue').length} with delay at SC level`,sh(sc.length),3),
-    stat('Overdue',od,'ri-alarm-warning-line','var(--grad-rose)',`${plural(k.soon,'reminder')} due within 10 days`,sh(od),4),
-    stat('Assented',k.enacted,'ri-award-line','var(--grad-indigo)',`${A.length} still in progress`,sh(k.enacted),5)]}
+    stat('Ministry view awaited',aw,'ri-chat-history-line','var(--grad-amber)','On Article 74',sh(aw),1),
+    stat('Cabinet consent',cr,'ri-shield-check-line','var(--grad-green)','Received',sh(cr),2),
+    stat('In Committee',sc.length,'ri-team-line','var(--grad-teal)',`${sc.filter(b=>deadline(b)?.state==='overdue').length} past deadline`,sh(sc.length),3),
+    stat('Overdue',od,'ri-alarm-warning-line','var(--grad-rose)',`${k.soon} more due in 10 days`,sh(od),4),
+    stat('Signed into law',k.enacted,'ri-award-line','var(--grad-indigo)',`${A.length} still in progress`,sh(k.enacted),5)]}
   const cob=B.filter(b=>stageName(b)==='Committee on Bills').length,rp=dfCount(B,'Report Presented','Inclusion of Report on OD'),ps=dfCount(B,'Decision of Joint Sitting','Bill Passed');
   return [
     stat('Joint Sitting Bills',B.length,'ri-group-line','var(--grad-indigo)',`<span>Official ${B.filter(b=>b.jsKind!=='Non-Official Bill').length}</span><span>Non-Official ${B.filter(b=>b.jsKind==='Non-Official Bill').length}</span>`,1,0),
-    stat('Committee on Bills',cob,'ri-team-line','var(--grad-teal)','Meetings in progress',sh(cob),1),
-    stat('Report Presented',rp,'ri-file-chart-line','var(--grad-blue)','In Joint Sitting',sh(rp),2),
-    stat('Bill Passed',ps,'ri-checkbox-circle-line','var(--grad-teal)','Decision of Joint Sitting',sh(ps),3),
-    stat('Sent for assent',k.assent,'ri-quill-pen-line','var(--grad-amber)','MoPA Endorsement for Assent',sh(k.assent),4),
-    stat('Assented',k.enacted,'ri-award-line','var(--grad-green)','Notification by NA Secretariat',sh(k.enacted),5)];
+    stat('In Committee',cob,'ri-team-line','var(--grad-teal)','Under review',sh(cob),1),
+    stat('Report done',rp,'ri-file-chart-line','var(--grad-blue)','Presented to Joint Sitting',sh(rp),2),
+    stat('Passed',ps,'ri-checkbox-circle-line','var(--grad-teal)','By the Joint Sitting',sh(ps),3),
+    stat('With President',k.assent,'ri-quill-pen-line','var(--grad-amber)','Waiting for signature',sh(k.assent),4),
+    stat('Signed into law',k.enacted,'ri-award-line','var(--grad-green)','Published by NA Secretariat',sh(k.enacted),5)];
 }
 
 /* ---------- dashboard toolbar: data as-of, period, print & download (BRD §16 Executive Dashboard Summary) ---------- */
