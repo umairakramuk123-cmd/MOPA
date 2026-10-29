@@ -1648,7 +1648,7 @@ function navLabel(p){
 let CH=[],Q=[];
 const PAL=['#059669','#2563eb','#14b8a6','#0ea5e9','#6366f1','#22c55e','#0891b2','#3b82f6'];
 function chart(id,o){Q.push([id,o])}
-function legendHTML(names,colors,pos,vals){return `<div class="mc-leg ${pos||''}">${names.map((n,i)=>`<span><i style="background:linear-gradient(135deg,${colors[i%colors.length]},${lighten(colors[i%colors.length],.45)})"></i>${esc(n)}${vals?` <b>${vals[i]}</b>`:''}</span>`).join('')}</div>`}
+function legendHTML(names,colors,pos,vals){return `<div class="mc-leg ${pos||''}">${names.map((n,i)=>`<span><i style="background:linear-gradient(135deg,${colors[i%colors.length]},${toMain(colors[i%colors.length])})"></i>${esc(n)}${vals?` <b>${vals[i]}</b>`:''}</span>`).join('')}</div>`}
 const stripFO=c=>{const el=c?.el;if(el)el.querySelectorAll('foreignObject').forEach(f=>f.remove())};
 /* ---------- colour hierarchy (same meaning = same colour in every chart) ----------
    green = assented / done · teal = passed / in order · blue = in progress
@@ -1664,6 +1664,8 @@ const CANON={'#059669':'green','#10b981':'green','#047857':'green','#34d399':'gr
  '#f43f5e':'rose','#e11d48':'rose','#fb7185':'rose',
  '#94a3b8':'slate','#cbd5e1':'slate','#64748b':'slate'};
 const canonC=c=>HIER[CANON[c]]||c;
+/* chart gradients run from the series colour toward the sidebar's main blue (#2563eb) */
+function toMain(hex,f=.3){const a=parseInt(hex.slice(1),16),b=0x2563eb;const mix=(x,y)=>Math.round(x+(y-x)*f);const r=mix(a>>16&255,b>>16&255),g=mix(a>>8&255,b>>8&255),bl=mix(a&255,b&255);return '#'+[r,g,bl].map(x=>x.toString(16).padStart(2,'0')).join('')}
 function lighten(hex,f=.4){const n=parseInt(hex.slice(1),16),m=c=>Math.round(c+(255-c)*f);const r=m(n>>16&255),g=m(n>>8&255),b=m(n&255);return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('')}
 function apexOpts(o){
   const t=o.chart.type,S=o.series,single=Array.isArray(S)&&S.length===1&&typeof S[0]==='object';
@@ -1679,7 +1681,7 @@ function apexOpts(o){
   o.states={hover:{filter:{type:'none'}},active:{filter:{type:'none'}}};
   /* gradient fills on every chart (light top, deeper base) */
   if(!['treemap','heatmap','radialBar','area'].includes(t)){
-    o.fill={type:'gradient',gradient:{shade:'light',type:o.plotOptions?.bar?.horizontal?'horizontal':'vertical',shadeIntensity:.5,gradientToColors:o.colors.map(c=>lighten(c,.45)),inverseColors:false,opacityFrom:1,opacityTo:.92,stops:[0,100]}};
+    o.fill={type:'gradient',gradient:{shade:'light',type:o.plotOptions?.bar?.horizontal?'horizontal':'vertical',shadeIntensity:.5,gradientToColors:o.colors.map(c=>toMain(c)),inverseColors:false,opacityFrom:1,opacityTo:.92,stops:[0,100]}};
   }
   if(t==='bar'){
     const bar=Object.assign({borderRadius:6,borderRadiusApplication:'end',columnWidth:'50%',barHeight:'60%'},o.plotOptions?.bar||{});
@@ -1718,7 +1720,7 @@ function legendFor(o){
 function gradLines(el,colors){
   const svg=el&&el.querySelector('svg');if(!svg||!colors)return;const NS='http://www.w3.org/2000/svg';
   let defs=svg.querySelector('defs.gl');if(!defs){defs=document.createElementNS(NS,'defs');defs.setAttribute('class','gl');svg.prepend(defs)}
-  defs.innerHTML=colors.map((c,i)=>`<linearGradient id="gl-${el.id}-${i}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${c}"/><stop offset="1" stop-color="${lighten(c,.45)}"/></linearGradient>`).join('');
+  defs.innerHTML=colors.map((c,i)=>`<linearGradient id="gl-${el.id}-${i}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${c}"/><stop offset="1" stop-color="${toMain(c)}"/></linearGradient>`).join('');
   svg.querySelectorAll('.apexcharts-line-series .apexcharts-series,.apexcharts-area-series .apexcharts-series').forEach((g,i)=>{
     const u=`url(#gl-${el.id}-${i})`;
     g.querySelectorAll('path.apexcharts-line,path.apexcharts-area').forEach(p=>p.setAttribute('stroke',u));
