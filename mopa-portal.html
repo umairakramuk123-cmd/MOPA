@@ -2481,7 +2481,7 @@ function dashPanel(t,B0,o={}){
   <div class="grid g-3 mt">${box('dStage','Where bills are now','How many bills are at each step of the law-making process. Click a bar to see them.','span2')}${box('dOut','What happened to each bill','Pending, passed, deferred, withdrawn or assented')}</div>
   ${sec('02','Committee and House progress','Deadlines at committee stage and transfer to the other House')}<div class="grid g-3 mt">${box('dSC','Bills with the Standing Committee: on time?',`Is each bill within its time limit? 30 days (NA), 60 days (Senate)${ext?` · ${plural(ext,'extension')} granted`:''}`)}${box('dOH','Bills sent to the other House','Is each bill within its 90-day limit?')}${third}</div>
   
-  ${sec('04','Houses and activity','Progress by House of origin and monthly movement of Bills')}
+  ${sec('04','House comparison &amp; monthly trend','Progress by House of origin and monthly movement of Bills')}
   ${(()=>{const r4=t==='PMB'?(cAssent('dAssent',t,B),box('dAssent','Bills waiting for the President','Endorsed, assented, notified and printed in the Gazette')):(mins?box('dAct','Month-by-month activity','Bills registered, passed and assented in the last 12 months'):'');
     return `<div class="grid ${r4?'g-3':'g-11'} mt">${box('dHouse','National Assembly vs Senate','Where bills from each House have reached')}${box('dHO','Outcome by House','How bills in each House ended up: pending, passed, deferred, withdrawn or assented')}${r4}</div>${t==='PMB'&&mins?`<div class="grid mt">${box('dAct','Month-by-month activity','Bills registered, passed and assented in the last 12 months')}</div>`:''}`})()}
   </div>`;
