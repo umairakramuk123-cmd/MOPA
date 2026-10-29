@@ -1083,7 +1083,7 @@ i[data-ic]>svg{width:1em;height:1em;fill:currentColor}
 
 
 /* ===== MINIMAL KPI + HERO (clean professional) ===== */
-.s-compact .stat{display:block;min-height:0;padding:16px 18px 14px;background:#fff;color:var(--ink);border:1px solid var(--line2);border-top:3px solid var(--acc);border-radius:14px;box-shadow:0 1px 2px rgba(15,23,42,.04);transition:box-shadow .2s}
+.s-compact .stat{display:block;min-height:0;padding:16px 18px 14px;background:var(--soft,#fff);color:var(--ink);border:1px solid var(--line2);border-top:3px solid var(--acc);border-radius:14px;box-shadow:0 1px 2px rgba(15,23,42,.04);transition:box-shadow .2s}
 .s-compact .stat::before,.s-compact .stat::after{display:none}
 .s-compact .stat:hover{transform:none;box-shadow:0 8px 20px -16px rgba(15,23,42,.35)}
 .s-compact .stat .stat-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -1106,7 +1106,7 @@ i[data-ic]>svg{width:1em;height:1em;fill:currentColor}
 /* ===== MINIMAL WORKFLOW TABS ===== */
 .dtabs.dtabs{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 18px}
 @media (max-width:1100px){.dtabs.dtabs{grid-template-columns:1fr}}
-.dtabs .dtab{display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:14px 16px 12px;border-radius:14px;background:#fff;border:1px solid var(--line2);border-top:3px solid #e2e8f0;box-shadow:none;transform:none;color:var(--ink);font:inherit;cursor:pointer;text-align:left;transition:border-color .2s}
+.dtabs .dtab{display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:14px 16px 12px;border-radius:14px;background:var(--soft,#fff);border:1px solid var(--line2);border-top:3px solid #e2e8f0;box-shadow:none;transform:none;color:var(--ink);font:inherit;cursor:pointer;text-align:left;transition:border-color .2s}
 .dtabs .dtab::after{display:none}
 .dtabs .dtab:hover{border-color:#cbd5e1;border-top-color:#94a3b8;transform:none}
 .dtabs .dtab.on{border-top-color:#059669;box-shadow:0 8px 20px -16px rgba(15,23,42,.35)}
@@ -1732,9 +1732,10 @@ function kpis(B){
     stance:f(b=>b.type==='PMB'&&!b.art74),transit:f(b=>/Transmitted|Other House/.test(stageName(b))),
     law:f(b=>!b.lawCleared),active:f(b=>b.status==='Active'),resp:f(responseDue)};
 }
+const SOFT={green:'#ecfdf5',main:'#ecfdf5',blue:'#eff6ff',cyan:'#ecfeff',indigo:'#eef2ff',amber:'#fffbeb',rose:'#fff1f2',teal:'#f0fdfa',emb:'#f0fdf4'};
 const ACC={green:'#059669',main:'#059669',blue:'#2563eb',cyan:'#0891b2',indigo:'#4f46e5',amber:'#d97706',rose:'#e11d48',teal:'#0d9488',emb:'#047857'};
-function stat(label,val,icon,grad,note,share,i){const acc=ACC[(grad.match(/grad-(\w+)/)||[])[1]]||'#0d9488';
-  return `<div class="stat fade-up" style="--acc:${acc};--d:${i*60}ms"><div class="stat-top"><span class="lbl">${label}</span><i class="${icon}"></i></div><div class="val" data-count="${val}">0</div>${note?`<div class="note">${note}</div>`:''}<div class="share"><i data-w="${Math.round(Math.min(1,Math.max(0,share))*100)}"></i></div></div>`;
+function stat(label,val,icon,grad,note,share,i){const k=(grad.match(/grad-(\w+)/)||[])[1],acc=ACC[k]||'#0d9488',soft=SOFT[k]||'#f0fdfa';
+  return `<div class="stat fade-up" style="--acc:${acc};--soft:${soft};--d:${i*60}ms"><div class="stat-top"><span class="lbl">${label}</span><i class="${icon}"></i></div><div class="val" data-count="${val}">0</div>${note?`<div class="note">${note}</div>`:''}<div class="share"><i data-w="${Math.round(Math.min(1,Math.max(0,share))*100)}"></i></div></div>`;
 }
 function countUp(){
   $$('[data-count]').forEach(el=>{const t=+el.dataset.count;let s=null;const step=ts=>{if(!s)s=ts;const p=Math.min(1,(ts-s)/900);el.textContent=Math.round(t*(1-Math.pow(1-p,3))).toLocaleString();if(p<1)requestAnimationFrame(step)};requestAnimationFrame(step)});
@@ -2350,9 +2351,10 @@ let DRILL_IDS=[];
 function viewDrillBills(t){state.tab=t;state.f={q:'',ministry:'',house:'',status:'',ruling:'',ids:DRILL_IDS.slice(),idsLabel:state.drill.map(d=>drillLabel(d)).join(' · ')||DTABS.find(x=>x[0]===t)[1]};state.pg=1;go._keep=true;go._ids=true;go('bills')}
 
 /* ---------- tab bar: one card per workflow, with live counts ---------- */
+const TAB_SOFT={OB:'#ecfdf5',PMB:'#eff6ff',JS:'#eef2ff'};
 function dashTabsBar(ALL){
   return `<div class="dtabs fade-up" role="tablist">${DTABS.map(([t,l])=>{const B=ALL.filter(b=>b.type===t),od=B.filter(b=>deadline(b)?.state==='overdue').length,en=B.filter(isDone).length,ac=activeOf(B).length;
-    return `<button class="dtab ${state.dTab===t?'on':''}" role="tab" aria-selected="${state.dTab===t}" onclick="setDTab('${t}')"><span class="dt-top"><span class="dt-name">${l}</span><em>${B.length}</em></span><span class="dt-stats"><span><b>${ac}</b>in progress</span><span class="r"><b>${od}</b>overdue</span><span class="g"><b>${en}</b>assented</span></span></button>`}).join('')}</div>`;
+    return `<button class="dtab ${state.dTab===t?'on':''}" style="--soft:${TAB_SOFT[t]}" role="tab" aria-selected="${state.dTab===t}" onclick="setDTab('${t}')"><span class="dt-top"><span class="dt-name">${l}</span><em>${B.length}</em></span><span class="dt-stats"><span><b>${ac}</b>in progress</span><span class="r"><b>${od}</b>overdue</span><span class="g"><b>${en}</b>assented</span></span></button>`}).join('')}</div>`;
 }
 
 /* ---------- drill-through: click any bar / slice / cell to filter every chart ---------- */
