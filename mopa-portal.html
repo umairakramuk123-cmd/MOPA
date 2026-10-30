@@ -1060,6 +1060,9 @@ i[data-ic]>svg{width:1em;height:1em;fill:currentColor}
 .tbill{display:inline-flex;align-items:center;gap:9px;padding:6px 14px 6px 12px;border-radius:999px;background:linear-gradient(135deg,#ecfdf5,#eff6ff 60%,#f5f3ff);border:1px solid rgba(5,150,105,.2);font-size:13px;font-weight:600;color:var(--muted);white-space:nowrap;box-shadow:0 6px 16px -14px rgba(15,23,42,.45)}
 .tbill i{color:#059669;font-size:16px}
 .tbill b{font-size:19px;font-weight:800;color:var(--ink);letter-spacing:-.02em}
+.acc-t td.c,.acc-t th.c{text-align:center}
+.acc-t td,.acc-t th{white-space:nowrap}
+.acc-t td small{display:block;font-weight:500}
 .lr-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .lr-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:#fff}
 .lr-item>div:nth-child(2){flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
@@ -1823,12 +1826,39 @@ const NAV={
  law:['dashboard','bills','deadlines','documents'],
  pmo:['dashboard','bills','deadlines','responses','documents','reports'],
 };
+
+/* ---------------- Role access matrix (meeting 30 Oct 2026): Super Admin changes module access and dashboard visibility without code ---------------- */
+const ALL_MODULES=['dashboard','bills','deadlines','responses','documents','reports','audit','users','settings'];
+const ACCESS={};
+Object.keys(NAV).forEach(k=>{ACCESS[k]={nav:NAV[k].slice(),readonly:!!ROLES[k].readonly}});
+/* MoPA's full view: every module except administration-only ones */
+['admin','dm','sec','pmo'].forEach(k=>{ACCESS[k].nav=ALL_MODULES.filter(m=>m!=='users'&&m!=='settings'&&m!=='audit'||k==='admin')});
+function navFor(role){return ACCESS[role]?ACCESS[role].nav:NAV[role]}
+function setModule(role,mod,on){
+  const a=ACCESS[role];if(!a)return;
+  if(on&&!a.nav.includes(mod))a.nav.push(mod);
+  if(!on)a.nav=a.nav.filter(x=>x!==mod);
+  a.nav=ALL_MODULES.filter(m=>a.nav.includes(m));
+  if(state.role===role&&!a.nav.includes(state.page))state.page='dashboard';
+  render();renderNav();
+  toast(`${ROLES[role].name}: ${NAV_ITEMS[mod].l} ${on?'added':'removed'}`,'ri-shield-check-line')
+}
+function setReadonly(role,on){if(!ACCESS[role])return;ACCESS[role].readonly=on;ROLES[role].readonly=on;applyReadonly();render();renderNav();toast(`${ROLES[role].name} is now ${on?'read-only':'editable'}`,'ri-lock-line')}
 const EXTRA_PAGES=['alerts','profile','bill'];
 const state={role:null,page:'dashboard',dTab:'OB',drill:[],billId:null,bTab:'data',tab:'ALL',f:{q:'',ministry:'',house:'',status:'',ruling:''},pg:1,alertF:'all',x:{view:'ALL',ministry:'',house:'',stage:'',status:'',mover:'',kind:'',session:''},rep:null,repF:{ministry:'',house:'',from:'',to:'',cat:'',stg:''},dsOpen:null,docF:'',auQ:'',helpT:'OB'};
 const ROLE=()=>ROLES[state.role];
 const can=k=>!!ROLE()?.can[k];
 const canEdit=()=>can('edit');
 const visibleBills=()=>state.role==='min'?BILLS.filter(b=>b.ministry===ROLE().ministry):BILLS;
+/* a role switched to read-only in System Settings loses every write permission at once */
+function applyReadonly(){
+  Object.keys(ROLES).forEach(k=>{
+    if(!ROLES[k].__base)ROLES[k].__base={...ROLES[k].can};
+    ROLES[k].can=ACCESS[k]&&ACCESS[k].readonly?{}:{...ROLES[k].__base};
+    if(ROLES[k].otp===undefined)ROLES[k].otp=!!ROLES[k].__otp;
+  });
+}
+applyReadonly();
 function visibleAlerts(){const ids=new Set(visibleBills().map(b=>b.id));let a=ALERTS.filter(x=>ids.has(x.bill));if(state.role==='law')a=a.filter(x=>x.type==='legal'||x.type==='milestone');return a}
 function navLabel(p){
   if(p==='dashboard'&&(state.role==='sec'||state.role==='pmo'))return 'Executive Dashboard';
@@ -2416,7 +2446,18 @@ PAGES.settings=()=>`<div class="ph"><div><span class="eyebrow">Super Admin</span
  <div class="card flush fade-up">${RULES.map(r=>{const m=A_META[r.type];return `<div class="rule"><div class="t-ic" style="background:${m[2]}"><i class="${m[1]}"></i></div><div class="m"><b>${esc(r.t)}</b><div class="chips" style="margin-top:8px">${r.to.map(t=>`<span class="chip sm">${t}</span>`).join('')}</div></div>
   ${r.days!==null?`<label class="chk">Remind <input class="num-in" type="number" min="1" max="30" value="${r.days}" onchange="RULES[${r.id}].days=+this.value"> days before</label>`:''}
   <label class="chk"><input type="checkbox" ${r.dash?'checked':''} onchange="RULES[${r.id}].dash=this.checked"> Dashboard</label><label class="chk"><input type="checkbox" ${r.email?'checked':''} onchange="RULES[${r.id}].email=this.checked"> Email</label>
-  <label class="switch" title="On / off"><input type="checkbox" ${r.on?'checked':''} onchange="RULES[${r.id}].on=this.checked"><span></span></label></div>`}).join('')}</div>`;
+  <label class="switch" title="On / off"><input type="checkbox" ${r.on?'checked':''} onchange="RULES[${r.id}].on=this.checked"><span></span></label></div>`}).join('')}</div>${accessMatrix()}`;
+
+/* ---------- Role access matrix (Super Admin only): change module access and dashboard visibility without code ---------- */
+function accessMatrix(){
+  const roles=Object.keys(ROLES),mods=ALL_MODULES;
+  const short={admin:'Super Admin',dm:'Data Manager',sec:'Secretary',min:'Ministry',law:'Law & Justice',pmo:'PMO'};
+  return `<div class="card flush fade-up mt"><div class="card-h"><div><h3>Role access</h3><p>Which modules each role can open. Changes apply immediately for that role.</p></div><span class="pill p-indigo"><i class="ri-shield-check-line"></i>${mods.length} modules · ${roles.length} roles</span></div>
+  <div class="tbl-wrap" style="margin-top:12px"><table class="acc-t"><thead><tr><th>Module</th>${roles.map(k=>`<th class="c">${short[k]}</th>`).join('')}</tr></thead><tbody>
+  ${mods.map(m=>`<tr><td><b>${NAV_ITEMS[m].l}</b></td>${roles.map(k=>{const on=navFor(k).includes(m),lock=k==='admin'&&m==='settings';return `<td class="c"><label class="switch" title="${on?'On':'Off'}" style="${lock?'opacity:.4;pointer-events:none':''}"><input type="checkbox" ${on?'checked':''} ${lock?'disabled':''} onchange="setModule('${k}','${m}',this.checked)"><span></span></label></td>`}).join('')}</tr>`).join('')}
+  <tr><td><b>Read-only</b><small class="muted">Cannot create or change records</small></td>${roles.map(k=>`<td class="c"><label class="switch" title="Read-only"><input type="checkbox" ${ACCESS[k].readonly?'checked':''} ${k==='admin'?'disabled style="opacity:.4"':''} onchange="setReadonly('${k}',this.checked)"><span></span></label></td>`).join('')}</tr>
+  </tbody></table></div></div>`;
+}
 
 /* ---------- My Profile (BRD §10/§11 flowcharts) ---------- */
 PAGES.profile=()=>{const r=ROLE();return `<div class="ph"><div><span class="eyebrow">Account</span><h1>My Profile</h1><p>Keep your contact details up to date so alerts reach you.</p></div></div>
@@ -3226,7 +3267,7 @@ function closeModal(clearDraft){dropModalCharts();$('#modalRoot').innerHTML='';P
 function toast(msg,ic='ri-checkbox-circle-line',bad){const t=document.createElement('div');t.className='toast'+(bad?' bad':'');t.innerHTML=`<i class="${ic}"></i><span>${esc(msg)}</span>`;$('#toasts').appendChild(t);setTimeout(()=>{t.style.transition='.4s';t.style.opacity='0';t.style.transform='translateY(10px)';setTimeout(()=>t.remove(),400)},3200)}
 
 function renderNav(){
-  const items=NAV[state.role],cur=state.page==='bill'?'bills':state.page;let g='',h='';
+  const items=navFor(state.role),cur=state.page==='bill'?'bills':state.page;let g='',h='';
   items.forEach(k=>{const it=NAV_ITEMS[k];if(it.g!==g){g=it.g;h+=`<div class="nav-g">${g}</div>`}
     let n=0;
     if(k==='deadlines')n=visibleBills().filter(b=>deadline(b)?.state==='overdue').length;
@@ -3237,7 +3278,7 @@ function renderNav(){
   $('#nav').innerHTML=h;
 }
 function updateBadges(){$('#nBadge').classList.toggle('hidden',!visibleAlerts().some(a=>!a.read));renderNav()}
-function go(p){if(!EXTRA_PAGES.includes(p)&&!NAV[state.role].includes(p))p='dashboard';if(p==='bills'&&state.page!=='bills'&&!go._keep)state.tab='ALL';if(!go._ids&&state.f)state.f.ids=null;go._ids=false;go._keep=false;state.page=p;state.docF='';closeDD();toggleMob(false);render();window.scrollTo({top:0,behavior:'smooth'})}
+function go(p){if(!EXTRA_PAGES.includes(p)&&!navFor(state.role).includes(p))p='dashboard';if(p==='bills'&&state.page!=='bills'&&!go._keep)state.tab='ALL';if(!go._ids&&state.f)state.f.ids=null;go._ids=false;go._keep=false;state.page=p;state.docF='';closeDD();toggleMob(false);render();window.scrollTo({top:0,behavior:'smooth'})}
 function render(){
   destroyCharts();
   const P=PAGES[state.page]||PAGES.dashboard;
