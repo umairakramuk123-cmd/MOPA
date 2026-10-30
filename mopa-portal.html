@@ -1480,7 +1480,8 @@ function makeBill(type,title,house,ministry,stage,days,status,member,art74,conse
     stanceLog:art74?[{v:art74,c:consent,date:new Date(reg.getTime()+6*DAY),by:'Ministry focal person'}]:[],
     lawCleared:stage!=='Pre-Introduction',lawRemark:stage==='Pre-Introduction'?'':'No legal objection. Consistent with the Constitution and existing law.',lawBy:'Bilal Ahmed',
     history,extraDocs:[],responses:[],rulings:[],approvals:[],fv:{},next:null,queries:[],skipOH:false,a74check:null,
-    otherHouse:house==='NA'?'Senate':house==='Senate'?'National Assembly':'—',jsKind:type==='JS'?(n%2?'Non-Official Bill':'Official Bill'):null,consentFile:consent==='Received'?'Cabinet-consent-letter.pdf':null};
+    otherHouse:house==='NA'?'Senate':house==='Senate'?'National Assembly':'—',jsKind:type==='JS'?(n%2?'Non-Official Bill':'Official Bill'):null,consentFile:consent==='Received'?'Cabinet-consent-letter.pdf':null,
+    ord:false,promulgated:null,stance:null,stanceRemark:'',stanceChanges:[]};
 }
 const BILLS=RAW.map((r,i)=>makeBill(r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],r[8],r[9],i));
 /* MoPA notings / queries to Line Ministries (spec §1) */
@@ -1497,6 +1498,25 @@ BILLS[19].a74check={v:'Does not apply',remarks:'No charge on public revenue.',by
 const NEXT_NOTES=['Follow up with the Secretariat on the next sitting','Check the Order of the Day','Confirm Committee meeting date','Chase the Ministry for its reply','Check status in the other House'];
 const needsNext=b=>b.status==='Active'&&!/Assented|Notified/.test(stageName(b))&&!b.next;
 BILLS[19].stanceLog.unshift({v:'Yes',c:'Pending',date:new Date(BILLS[19].reg.getTime()+2*DAY),by:'Ministry focal person'});
+
+/* ---------------- Ordinances (meeting 30 Oct 2026): date of promulgation and the statutory 120-day limit ---------------- */
+const ORD_SEED=[
+ ['The Pakistan Electronic Media (Amendment) Ordinance, 2026','Information & Broadcasting','Introduced',12,118,'Active'],
+ ['The Immigration (Amendment) Ordinance, 2026','Interior & Narcotics Control','Standing Committee',40,64,'Active'],
+ ['The Customs Tariff (Amendment) Ordinance, 2026','Finance & Revenue','Report Presented',25,101,'Active'],
+ ['The Aviation Security (Amendment) Ordinance, 2026','Aviation Division','Other House',30,124,'Active'],
+ ['The Drug Regulatory Authority (Amendment) Ordinance, 2026','National Health Services, R&C','Notified',60,141,'Assented']];
+ORD_SEED.forEach(([title,min,stage,days,promDays,status],k)=>{
+  const b=makeBill('OB',title,k%2?'Senate':'NA',min,stage,days,status,null,null,null,900+k);
+  b.ord=true;b.promulgated=new Date(TODAY-promDays*DAY);BILLS.push(b)});
+
+/* ---------------- Ministry stance proforma (meeting 30 Oct 2026): Support / Oppose / Supported with Amendments ---------------- */
+const STANCES=['Support','Oppose','Supported with Amendments'];
+const STANCE_TONE={'Support':'green','Oppose':'rose','Supported with Amendments':'amber'};
+BILLS.filter(b=>b.type==='PMB'&&b.art74).forEach((b,k)=>{
+  b.stance=STANCES[(b.n+k)%3];
+  b.stanceRemark=b.stance==='Support'?'No objection to the Bill as drafted.':b.stance==='Oppose'?'The Bill overlaps with existing federal legislation.':'Support subject to the amendments proposed by the Ministry.';
+  b.stanceChanges=[{stance:b.stance,remark:b.stanceRemark,date:new Date(b.reg.getTime()+9*DAY),by:'Ministry focal person'}]});
 
 /* Ministry replies to MoPA (BRD §13 — "enter the response/replies against every bill") */
 const REPLIES=[
@@ -1535,12 +1555,16 @@ BILLS.slice(30).forEach(b=>{const s=stageName(b);
 /* Deadline tracking (BRD §8): 30-day NA / 60-day Senate Committee, 90-day other House */
 function deadline(b){
   if(b.status==='Withdrawn'||b.status==='Deferred')return null;
-  const s=stageName(b);let limit=null,label='',short='';
-  if(s==='Standing Committee'){const ext=b.rulings.filter(r=>r.status==='Extension granted').reduce((a,r)=>a+(r.days||0),0);limit=(b.house==='NA'?30:60)+ext;label=`${b.house==='NA'?'NA':'Senate'} Standing Committee · ${b.house==='NA'?30:60}-day limit${ext?` + ${ext}-day extension`:''}`;short='Committee'}
+  const s=stageName(b);let limit=null,label='',short='',el0=null;
+  if(b.ord&&!/Assented|Notified/.test(s)){
+    limit=120;label='Ordinance · 120-day limit from promulgation';short='120-day';
+    el0=Math.max(0,Math.floor((TODAY-b.promulgated)/DAY));
+  }
+  else if(s==='Standing Committee'){const ext=b.rulings.filter(r=>r.status==='Extension granted').reduce((a,r)=>a+(r.days||0),0);limit=(b.house==='NA'?30:60)+ext;label=`${b.house==='NA'?'NA':'Senate'} Standing Committee · ${b.house==='NA'?30:60}-day limit${ext?` + ${ext}-day extension`:''}`;short='Committee'}
   else if((s==='Transmitted'||s==='Other House')&&!b.skipOH){limit=90;label='Other House · 90-day Constitutional limit';short='90-day'}
   if(!limit)return null;
-  const el=ageing(b),left=limit-el;
-  return {limit,el,left,label,short,aging:Math.max(0,-left),state:left<0?'overdue':left<=10?'soon':'ok',pct:Math.min(100,Math.round(el/limit*100))};
+  const el=el0!==null?el0:ageing(b),left=limit-el;
+  return {limit,el,left,label,short,aging:Math.max(0,-left),state:left<0?'overdue':left<=10?'soon':'ok',pct:Math.min(100,Math.round(el/limit*100)),ord:!!b.ord,lapsed:!!b.ord&&left<0&&!/Assented|Notified/.test(s)};
 }
 function stageTone(b){
   if(b.status==='Withdrawn')return 'rose';if(b.status==='Deferred')return 'amber';
@@ -1553,7 +1577,8 @@ function stageTone(b){
   return 'slate';
 }
 const stagePill=b=>`<span class="pill dot p-${stageTone(b)}">${b.status==='Withdrawn'||b.status==='Deferred'?b.status+' · ':''}${esc(stageName(b))}</span>`;
-const typePill=b=>`<span class="pill p-${b.type==='OB'?'green':b.type==='PMB'?'blue':'indigo'}">${b.type==='PMB'?'PMB':TYPE_SHORT[b.type]}</span>`;
+const typePill=b=>`<span class="pill p-${b.type==='OB'?'green':b.type==='PMB'?'blue':'indigo'}">${b.type==='PMB'?'PMB':TYPE_SHORT[b.type]}</span>${b.ord?'<span class="pill p-amber">Ordinance</span>':''}`;
+const stancePill=b=>b.stance?`<span class="pill p-${STANCE_TONE[b.stance]||'slate'}"><i class="ri-user-follow-line"></i>${b.stance}</span>`:'';
 /* Escalation colours (spec §3): Yellow = first reminder / approaching, Red = overdue / escalated, Green = actioned / on track */
 function dlChip(b){const d=deadline(b);if(!d)return '';
   if(d.state==='overdue')return `<span class="pill flag-r"><i class="ri-alarm-warning-line"></i>Ageing ${plural(d.aging,'day')}</span>`;
@@ -1736,7 +1761,7 @@ const NAV={
  pmo:['dashboard','bills','deadlines','reports'],
 };
 const EXTRA_PAGES=['alerts','profile','bill'];
-const state={role:null,page:'dashboard',dTab:'OB',drill:[],billId:null,bTab:'data',tab:'ALL',f:{q:'',ministry:'',house:'',status:'',ruling:''},pg:1,alertF:'all',x:{view:'ALL',ministry:'',house:'',stage:'',status:'',mover:''},rep:null,repF:{ministry:'',house:'',from:'',to:'',cat:'',stg:''},dsOpen:null,docF:'',auQ:'',helpT:'OB'};
+const state={role:null,page:'dashboard',dTab:'OB',drill:[],billId:null,bTab:'data',tab:'ALL',f:{q:'',ministry:'',house:'',status:'',ruling:''},pg:1,alertF:'all',x:{view:'ALL',ministry:'',house:'',stage:'',status:'',mover:'',kind:''},rep:null,repF:{ministry:'',house:'',from:'',to:'',cat:'',stg:''},dsOpen:null,docF:'',auQ:'',helpT:'OB'};
 const ROLE=()=>ROLES[state.role];
 const can=k=>!!ROLE()?.can[k];
 const canEdit=()=>can('edit');
@@ -2557,14 +2582,14 @@ PAGES.dashboard=()=>{
 };
 /* ---------- dashboard filters: one shared bar for every role; every chart and tab count follows it ---------- */
 const NOMATCH='No Bills match these filters. Try a different tab or clear one of the filters.';
-const xF=B=>{const x=state.x;return B.filter(b=>(!x.ministry||b.ministry===x.ministry)&&(!x.house||b.house===x.house)&&(!x.stage||bucket(b)===x.stage)&&(!x.mover||(x.mover==='Minister-in-Charge'?b.member==='Minister-in-Charge':b.member===x.mover))&&(!x.status||(x.status==='Overdue'?deadline(b)?.state==='overdue':x.status==='Active'?b.status==='Active':outcome(b)===x.status)))};
-const xOn=()=>!!(state.x.ministry||state.x.house||state.x.stage||state.x.status||state.x.mover);
-const clearX=()=>{state.x={view:'ALL',ministry:'',house:'',stage:'',status:'',mover:''};render()};
+const xF=B=>{const x=state.x;return B.filter(b=>(!x.kind||(x.kind==='Ordinance'?!!b.ord:!b.ord))&&(!x.ministry||b.ministry===x.ministry)&&(!x.house||b.house===x.house)&&(!x.stage||bucket(b)===x.stage)&&(!x.mover||(x.mover==='Minister-in-Charge'?b.member==='Minister-in-Charge':b.member===x.mover))&&(!x.status||(x.status==='Overdue'?deadline(b)?.state==='overdue':x.status==='Active'?b.status==='Active':outcome(b)===x.status)))};
+const xOn=()=>!!(state.x.ministry||state.x.house||state.x.stage||state.x.status||state.x.mover||state.x.kind);
+const clearX=()=>{state.x={view:'ALL',ministry:'',house:'',stage:'',status:'',mover:'',kind:''};render()};
 function dashFilters(){
   const x=state.x,sel=(k,label,opts)=>`<select class="input" aria-label="${label}" onchange="setX('${k}',this.value)"><option value="">${label}</option>${opts.map(([v,l])=>`<option value="${esc(v)}" ${x[k]===v?'selected':''}>${esc(l)}</option>`).join('')}</select>`;
   const movers=[...new Set(BILLS.map(b=>b.member).filter(Boolean))].sort().map(m=>[m,m]);
   const min=state.role==='min'?'':sel('ministry',`All Ministries / Divisions (${MINISTRIES.length})`,MINISTRIES.map(m=>[m,m]));
-  return `<div class="card xbar fade-up"><span class="xb-l"><i class="ri-filter-3-line"></i>Filters</span><div class="filters">${min}${sel('house','All Houses',[['NA','National Assembly'],['Senate','Senate'],['Joint','Joint Sitting']])}${sel('mover','All movers / sponsoring Ministries',movers)}${sel('stage','All stages',BUCKETS.map(s=>[s,s]))}${sel('status','All statuses',['Active','Overdue','Pending','Passed','Deferred','Withdrawn','Assented'].map(s=>[s,s]))}<button class="icon-btn" title="Clear filters" onclick="clearX()"><i class="ri-refresh-line"></i></button></div></div>`;
+  return `<div class="card xbar fade-up"><span class="xb-l"><i class="ri-filter-3-line"></i>Filters</span><div class="filters">${min}${sel('house','All Houses',[['NA','National Assembly'],['Senate','Senate'],['Joint','Joint Sitting']])}${sel('mover','All movers / sponsoring Ministries',movers)}${sel('kind','All categories',[['Bill','Bills only'],['Ordinance','Ordinances only']])}${sel('stage','All stages',BUCKETS.map(s=>[s,s]))}${sel('status','All statuses',['Active','Overdue','Pending','Passed','Deferred','Withdrawn','Assented'].map(s=>[s,s]))}<button class="icon-btn" title="Clear filters" onclick="clearX()"><i class="ri-refresh-line"></i></button></div></div>`;
 }
 function dashMoPA(){
   const t=state.dTab,B=xF(perF(BILLS));
@@ -2629,6 +2654,7 @@ PAGES.bill=()=>{
   const acts=[];
   if(can('edit'))acts.push(`<button class="btn btn-primary" onclick="openUpdate('${b.id}')"><i class="ri-git-commit-line"></i>Update stage</button>`,`<button class="btn" onclick="openEditDetails('${b.id}')"><i class="ri-edit-line"></i>Edit details</button>`,`<button class="btn" onclick="openQuery('${b.id}')"><i class="ri-question-answer-line"></i>Send query</button>`,`<button class="btn" onclick="openRuling('${b.id}')"><i class="ri-auction-line"></i>Record ruling</button>`);
   if(can('respond')&&own)acts.push(`<button class="btn btn-primary" onclick="openRespond('${b.id}')"><i class="ri-reply-line"></i>Respond to MoPA</button>`);
+  if(b.type==='PMB'&&own&&can('respond'))acts.push(`<button class="btn" onclick="openStance('${b.id}')"><i class="ri-user-follow-line"></i>${b.stance?'Update stance':'Ministry stance'}</button>`);
   if(can('remarks'))acts.push(`<button class="btn btn-primary" onclick="openRemarks('${b.id}')"><i class="ri-edit-2-line"></i>${b.lawCleared?'Add remarks':'Add remarks / clear'}</button>`);
   if(can('approve'))acts.push(`<button class="btn btn-primary" onclick="openApprove('${b.id}')"><i class="ri-checkbox-circle-line"></i>${b.approvals.length?'Approve again':'Approve'}</button>`);
   if(!can('edit'))acts.push(`<span class="pill p-slate"><i class="ri-lock-line"></i>${r.readonly?'View only':'Read-only · edited by MoPA'}</span>`);
@@ -2646,7 +2672,7 @@ PAGES.bill=()=>{
   <div class="crumbs"><a onclick="go('${prev}')"><i class="ri-arrow-left-line"></i>${navLabel(prev)}</a><span>/</span><span>${b.id}</span></div>
   <div class="bh fade-up">
     <div class="bh-main">
-      <div class="bh-tags"><span class="pill p-${b.type==='OB'?'green':b.type==='PMB'?'blue':'indigo'}">${TYPE_NAME[b.type]}</span><span class="pill p-slate">${b.id}</span>${stagePill(b)}${flagPill(b)}${b.skipOH?'<span class="pill p-slate">Other House: not applicable</span>':''}</div>
+      <div class="bh-tags"><span class="pill p-${b.type==='OB'?'green':b.type==='PMB'?'blue':'indigo'}">${TYPE_NAME[b.type]}</span><span class="pill p-slate">${b.id}</span>${b.ord?'<span class="pill p-amber"><i class="ri-government-line"></i>Ordinance · 120-day limit</span>':''}${stagePill(b)}${flagPill(b)}${b.skipOH?'<span class="pill p-slate">Other House: not applicable</span>':''}</div>
       <h2>${esc(b.title)}</h2>
       <div class="bh-meta"><span><i class="ri-government-line"></i>${HOUSE_NAME[b.house]}</span><span><i class="ri-building-2-line"></i>${esc(b.ministry)}</span>${b.member?`<span><i class="ri-user-3-line"></i>${esc(b.member)}</span>`:''}<span><i class="ri-calendar-line"></i>Registered ${fmt(b.reg)}</span></div>
     </div>
@@ -2654,7 +2680,7 @@ PAGES.bill=()=>{
   </div>
   <div class="bt-row fade-up">
     ${tile('ri-flag-2-line','Current stage',esc(stageName(b)),`Stage ${b.si+1} of ${stagesOf(b).length}`,'g')}
-    ${d?tile('ri-timer-flash-line',d.short==='90-day'?'90-day clock':'Committee clock',`${d.el} of ${d.limit} days`,d.state==='overdue'?`<em class="bad">Overdue by ${-d.left} days</em>`:`${d.left} days left`,d.state==='overdue'?'r':d.state==='soon'?'a':'g'):tile('ri-time-line','Days at this stage',plural(ageing(b),'day'),'No running clock','b')}
+    ${d?tile('ri-timer-flash-line',b.ord?'Ordinance clock':d.short==='90-day'?'90-day clock':'Committee clock',`${d.el} of ${d.limit} days`,d.state==='overdue'?`<em class="bad">Overdue by ${-d.left} days</em>`:`${d.left} days left`,d.state==='overdue'?'r':d.state==='soon'?'a':'g'):tile('ri-time-line','Days at this stage',plural(ageing(b),'day'),'No running clock','b')}
     ${tile('ri-question-answer-line','Ministry queries',openQueries(b).length?plural(openQueries(b).length,'open query','open queries'):'None open',openQueries(b).length?`Reply by ${fmt(openQueries(b).sort((a,c)=>a.due-c.due)[0].due)}`:`${(b.queries||[]).length} answered`,openQueries(b).some(q=>qState(q)==='r')?'r':openQueries(b).length?'a':'g')}
     ${tile('ri-calendar-check-line','Next action',b.next?fmt(b.next.date):(needsNext(b)?'<em class="bad">Not set</em>':'—'),b.next?esc(b.next.note):can('edit')&&b.status==='Active'?`<a class="link" onclick="openNext('${b.id}')">Set a date</a>`:'',b.next?'b':'a')}
   </div>
@@ -2674,6 +2700,8 @@ function overviewTab(b){
    <div class="ov-k"><small>${b.type==='PMB'?'Relevant':'Sponsoring'} Ministry</small><b>${esc(b.ministry)}</b></div>
    <div class="ov-k"><small>Member-in-charge</small><b>${esc(b.member||'—')}</b></div>
    <div class="ov-k"><small>Article 74</small><b>${b.type==='PMB'?(b.a74check?esc(b.a74check.v)+' (MoPA scrutiny)':'Scrutiny pending'):'Not required (Official Bill)'}</b></div>
+   ${b.ord?`<div class="ov-k"><small>Ordinance · promulgation</small><b>${fmt(b.promulgated)} · ${d&&d.lapsed?'<span style="color:#e11d48">120 days lapsed</span>':d?`${d.limit-d.el} days left`:'—'}</b></div>`:''}
+   ${b.type==='PMB'?`<div class="ov-k"><small>Ministry stance</small><b>${b.stance?stancePill(b):'<span class="warn-t">Not submitted</span>'}</b></div>`:''}
    <div class="ov-k"><small>Deadline</small><b>${d?`${d.el} of ${d.limit} days`:'No clock running'}</b></div>
    <div class="ov-k"><small>Law &amp; Justice</small><b>${b.lawCleared?'<span class="ok-t">Cleared</span>':'<span class="warn-t">Pending</span>'}</b></div>
    <div class="ov-k"><small>Secretary approval</small><b>${b.approvals.length?'<span class="ok-t">Approved '+fmt(b.approvals[b.approvals.length-1].date)+'</span>':'Not yet'}</b></div>
@@ -3003,6 +3031,22 @@ function saveNext(id){const b=byId(id),d=$('#nxD').value,n=$('#nxN').value.trim(
   AUDIT.unshift({ts:new Date(),user:ROLE().user,bill:id,field:'Next-action date',old:b.next?fmt(b.next.date):'—',nw:fmt(d),reason:n});b.next={date:new Date(d),note:n,by:ROLE().user};closeModal();toast('Next-action date saved','ri-calendar-check-line');render()}
 
 /* Secretary approval ("Can approve and monitor file") */
+/* Ministry stance proforma (meeting 30 Oct 2026): quick radio options, changeable at any stage with remarks */
+function openStance(id){const b=byId(id);
+  modal(`<div class="m-h"><div><span class="eyebrow">Ministry stance proforma</span><h3>${esc(b.title)}</h3><small class="muted">${b.id} · ${esc(b.ministry)}</small></div><button class="icon-btn" onclick="closeModal()"><i class="ri-close-line"></i></button></div>
+  <div class="m-b"><div class="field"><span>Stance on the Bill *</span><div class="radio-row">${STANCES.map(v=>`<label class="radio"><input type="radio" name="stc" value="${v}" ${b.stance===v?'checked':''}>${v}</label>`).join('')}</div></div>
+  <label class="field"><span>Remarks *</span><textarea class="input" id="stR" rows="4" placeholder="Why the Ministry takes this position">${esc(b.stanceRemark||'')}</textarea></label>
+  ${b.stanceChanges&&b.stanceChanges.length?`<div class="okbox"><i class="ri-history-line"></i>Earlier stance: ${esc(b.stanceChanges[b.stanceChanges.length-1].stance)} · ${fmt(b.stanceChanges[b.stanceChanges.length-1].date)}. The change is kept in the audit trail.</div>`:''}
+  <div class="errbox hidden" id="stE"></div></div>
+  <div class="m-f"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveStance('${id}')"><i class="ri-save-3-line"></i>Save stance</button></div>`)}
+function saveStance(id){const b=byId(id),v=document.querySelector('input[name="stc"]:checked')?.value,r=$('#stR').value.trim(),e=$('#stE');
+  if(!v||!r){e.innerHTML='<i class="ri-error-warning-line"></i>'+(!v?'Choose a stance.':'Add remarks explaining the stance.');e.classList.remove('hidden');return}
+  const old=b.stance||'—';b.stance=v;b.stanceRemark=r;
+  b.stanceChanges=b.stanceChanges||[];b.stanceChanges.push({stance:v,remark:r,date:new Date(),by:ROLE().user});
+  AUDIT.unshift({ts:new Date(),user:ROLE().user,bill:id,field:'Ministry stance',old,nw:v,reason:r});
+  pushAlert('milestone',`Ministry stance recorded: ${v}`,id,null,false,0);
+  closeModal();render();toast(`Stance recorded — ${v}`,'ri-user-follow-line')}
+
 function openApprove(id){const b=byId(id);
   modal(`<div class="m-h"><div><span class="eyebrow">Approve file</span><h3>${esc(b.title)}</h3><small class="muted">${b.id} · ${esc(stageName(b))}</small></div><button class="icon-btn" onclick="closeModal()"><i class="ri-close-line"></i></button></div>
   <div class="m-b"><label class="field"><span>Remarks *</span><textarea class="input" id="apT" rows="4" placeholder="e.g. Approved. Proceed with endorsement for assent."></textarea></label><div class="errbox hidden" id="apE"></div></div>
