@@ -1481,7 +1481,7 @@ function makeBill(type,title,house,ministry,stage,days,status,member,art74,conse
     lawCleared:stage!=='Pre-Introduction',lawRemark:stage==='Pre-Introduction'?'':'No legal objection. Consistent with the Constitution and existing law.',lawBy:'Bilal Ahmed',
     history,extraDocs:[],responses:[],rulings:[],approvals:[],fv:{},next:null,queries:[],skipOH:false,a74check:null,
     otherHouse:house==='NA'?'Senate':house==='Senate'?'National Assembly':'—',jsKind:type==='JS'?(n%2?'Non-Official Bill':'Official Bill'):null,consentFile:consent==='Received'?'Cabinet-consent-letter.pdf':null,
-    ord:false,promulgated:null,stance:null,stanceRemark:'',stanceChanges:[]};
+    ord:false,promulgated:null,stance:null,stanceRemark:'',stanceChanges:[],preNotice:null};
 }
 const BILLS=RAW.map((r,i)=>makeBill(r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],r[8],r[9],i));
 /* MoPA notings / queries to Line Ministries (spec §1) */
@@ -1513,6 +1513,11 @@ ORD_SEED.forEach(([title,min,stage,days,promDays,status],k)=>{
 /* ---------------- Ministry stance proforma (meeting 30 Oct 2026): Support / Oppose / Supported with Amendments ---------------- */
 const STANCES=['Support','Oppose','Supported with Amendments'];
 const STANCE_TONE={'Support':'green','Oppose':'rose','Supported with Amendments':'amber'};
+/* Pre-admissibility notice (meeting 30 Oct 2026): the Ministry must reply within 5 days of the Secretariat notice */
+BILLS.filter(b=>b.type==='PMB').forEach(b=>{
+  const pre=b.si<=STAGES[b.type].indexOf('Admitted');
+  if(pre&&(!b.art74||b.n%3===0))b.preNotice=new Date(b.reg.getTime()+(b.n%4)*DAY)});
+
 BILLS.filter(b=>b.type==='PMB'&&b.art74).forEach((b,k)=>{
   b.stance=STANCES[(b.n+k)%3];
   b.stanceRemark=b.stance==='Support'?'No objection to the Bill as drafted.':b.stance==='Oppose'?'The Bill overlaps with existing federal legislation.':'Support subject to the amendments proposed by the Ministry.';
@@ -1619,6 +1624,16 @@ function bucket(b){
   return 'Other House';
 }
 const BUCKETS=['Pre-Intro','Agenda','Introduced','Committee','Report','Passed','Other House','Joint Sitting','Assent','Enacted'];
+/* Pre-admissibility response clock: 5 days from the Secretariat notice to the Ministry's reply */
+const PRE_DAYS=5;
+function preClock(b){
+  if(!b.preNotice||b.type!=='PMB'||b.art74||b.status!=='Active')return null;
+  const done=sIdx(b,'Admitted'),el=Math.max(0,Math.floor((TODAY-b.preNotice)/DAY));
+  if(done>=0&&b.si>=done)return null;
+  const left=PRE_DAYS-el;
+  return {limit:PRE_DAYS,el,left,aging:Math.max(0,-left),state:left<0?'overdue':left<=1?'soon':'ok',due:new Date(b.preNotice.getTime()+PRE_DAYS*DAY)};
+}
+const preOverdue=B=>B.filter(b=>preClock(b)?.state==='overdue');
 const responseDue=b=>b.status==='Active'&&!/Assented|Notified/.test(stageName(b))&&((b.type==='PMB'&&!b.art74)||openQueries(b).length>0);
 
 BILLS.forEach(b=>{if(b.status==='Active'&&!/Assented|Notified/.test(stageName(b))&&b.n%5!==0)b.next={date:new Date(TODAY.getTime()+(b.n%9+1)*DAY),note:NEXT_NOTES[b.n%5],by:STAFF[b.n%3]}});
@@ -2130,7 +2145,7 @@ PAGES.responses=()=>{
     return `
     <div class="ph"><div><span class="eyebrow">${esc(ROLE().org)}</span><h1>My Responses</h1><p>Reply to MoPA on each Bill and attach your letter. For Non-Official Bills, also record whether Article 74 applies and whether Cabinet consent has been received.</p></div></div>
     <div class="card flush fade-up"><div class="card-h"><div><h3>Waiting for your reply</h3><p>${plural(due.length,'Bill')}</p></div></div>
-     <div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>Bill</th><th>What MoPA needs</th><th>Stage</th><th>Shared</th><th class="r"></th></tr></thead><tbody>${due.map(b=>`<tr><td><b>${esc(b.title)}</b><small>${b.id}${b.type==='PMB'?' · '+esc(b.member):''}</small></td><td>${b.type==='PMB'?'<span class="pill p-blue">Article 74 stance + Cabinet consent</span>':'<span class="pill p-slate">Reply / comments</span>'}</td><td>${stagePill(b)}</td><td>${ageing(b)} days ago</td><td class="r" style="white-space:nowrap"><button class="icon-btn" title="View Bill" onclick="openBill('${b.id}')"><i class="ri-eye-line"></i></button> <button class="btn btn-primary btn-sm" onclick="openRespond('${b.id}')"><i class="ri-reply-line"></i>Respond</button></td></tr>`).join('')||`<tr><td colspan="5">${empty('All caught up','No replies are due.','ri-checkbox-circle-line')}</td></tr>`}</tbody></table></div></div>
+     <div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>Bill</th><th>What MoPA needs</th><th>Stage</th><th>Response due</th><th>Shared</th><th class="r"></th></tr></thead><tbody>${due.map(b=>`<tr><td><b>${esc(b.title)}</b><small>${b.id}${b.type==='PMB'?' · '+esc(b.member):''}</small></td><td>${b.type==='PMB'?'<span class="pill p-blue">Article 74 stance + Cabinet consent</span>':'<span class="pill p-slate">Reply / comments</span>'}</td><td>${stagePill(b)}</td><td>${preClock(b)?`<span class="pill flag-${preClock(b).state==='overdue'?'r':preClock(b).state==='soon'?'y':'g'}">${preClock(b).state==='overdue'?plural(-preClock(b).left,'day')+' late':'Reply by '+fmt(preClock(b).due)}</span>`:'<span class="muted">—</span>'}</td><td>${ageing(b)} days ago</td><td class="r" style="white-space:nowrap"><button class="icon-btn" title="View Bill" onclick="openBill('${b.id}')"><i class="ri-eye-line"></i></button> <button class="btn btn-primary btn-sm" onclick="openRespond('${b.id}')"><i class="ri-reply-line"></i>Respond</button></td></tr>`).join('')||`<tr><td colspan="6">${empty('All caught up','No replies are due.','ri-checkbox-circle-line')}</td></tr>`}</tbody></table></div></div>
     <div class="card flush mt fade-up"><div class="card-h"><div><h3>Replies sent</h3><p>Visible to MoPA, the Secretariat and your Ministry</p></div></div>
      <div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>Bill</th><th>Reply</th><th>Article 74</th><th>Sent</th><th class="r"></th></tr></thead><tbody>${sent.map(({b,r})=>`<tr class="click" onclick="openBill('${b.id}','responses')"><td><b>${esc(b.title)}</b><small>${b.id}</small></td><td class="muted" style="min-width:260px">${esc(r.text)}</td><td>${r.stance?`<span class="pill p-${r.stance==='Yes'?'blue':'slate'}">${r.stance==='Yes'?'Applies':'Does not apply'}</span>`:'—'}</td><td>${fmt(r.date)}<small>${esc(r.by)}</small></td><td class="r"><button class="icon-btn" title="View Bill"><i class="ri-eye-line"></i></button></td></tr>`).join('')||`<tr><td colspan="5">${empty('No replies yet','Replies you send will be listed here.')}</td></tr>`}</tbody></table></div></div>`;
   }
@@ -2143,6 +2158,7 @@ PAGES.responses=()=>{
     ${stat('Responses received',BILLS.reduce((a,b)=>a+b.responses.length,0),'ri-chat-check-line','var(--grad-main)','All workflows',1,1)}
     ${stat('Article 74 applicable',P.filter(b=>b.art74==='Yes').length,'ri-file-shield-2-line','var(--grad-indigo)','Cabinet consent needed',P.filter(b=>b.art74==='Yes').length/P.length,2)}
     ${stat('Cabinet consent received',P.filter(b=>b.consent==='Received').length,'ri-checkbox-circle-line','var(--grad-blue)',`${P.filter(b=>b.consent==='Pending').length} still pending`,P.filter(b=>b.consent==='Received').length/Math.max(1,P.filter(b=>b.art74==='Yes').length),3)}
+    ${stat('Pre-admissibility overdue',preOverdue(P).length,'ri-timer-flash-line','var(--grad-amber)','No reply within 5 days',preOverdue(P).length/Math.max(1,P.length),4)}
   </div>
   <div class="grid g-21 mt">
     <div class="card flush fade-up"><div class="card-h"><div><h3>Response register</h3><p>Awaited first</p></div></div><div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>Bill</th><th>Ministry</th><th>Latest reply</th><th>Article 74</th><th class="r">View</th></tr></thead><tbody>
@@ -2162,7 +2178,9 @@ PAGES.legal=()=>{
 /* ---------- Deadlines & ageing ---------- */
 PAGES.deadlines=()=>{
   const B=visibleBills(),T=B.map(b=>({b,d:deadline(b)})).filter(x=>x.d).sort((a,c)=>a.d.left-c.d.left);
-  const o=T.filter(x=>x.d.state==='overdue').length,s=T.filter(x=>x.d.state==='soon').length,act=B.filter(b=>b.status==='Active');
+  const PRE=B.map(b=>({b,p:preClock(b)})).filter(x=>x.p).map(({b,p})=>({b,d:{limit:p.limit,el:p.el,left:p.left,aging:p.aging,state:p.state,pct:Math.min(100,Math.round(p.el/p.limit*100)),pre:true}}));
+  const A2=T.concat(PRE).sort((a,c)=>a.d.left-c.d.left);
+  const o=A2.filter(x=>x.d.state==='overdue').length,s=A2.filter(x=>x.d.state==='soon').length,act=B.filter(b=>b.status==='Active');
   const bands=[['0–15',0,15],['16–30',16,30],['31–60',31,60],['61–90',61,90],['90+',91,9999]];
   chart('chAge',{chart:{type:'bar',height:290},series:[{name:'Bills',data:bands.map(([,a,z])=>act.filter(b=>ageing(b)>=a&&ageing(b)<=z).length)}],xaxis:{categories:bands.map(x=>x[0]+' days')},yaxis:{labels:{formatter:v=>Math.round(v)}},
     plotOptions:{bar:{borderRadius:8,columnWidth:'46%',distributed:true}},colors:['#10b981','#14b8a6','#0ea5e9','#2563eb','#f43f5e'],legend:{show:false},dataLabels:{enabled:true,style:{fontSize:'13px',fontWeight:700}}});
@@ -2178,7 +2196,7 @@ PAGES.deadlines=()=>{
     <div class="grid g-11" style="align-content:start">${T.map(({b,d},i)=>`<div class="card dlcard fade-up" style="--d:${i*60}ms" onclick="openBill('${b.id}')"><div class="ring" style="--p:${d.pct};--c:${d.state==='overdue'?'#f43f5e':d.state==='soon'?'#f59e0b':'#10b981'}"><span>${d.state==='overdue'?'+'+(-d.left):d.left}d</span></div><div class="m"><b>${esc(b.title)}</b><small class="muted">${d.label}</small><div style="margin-top:6px">${dlChip(b)}</div></div></div>`).join('')||`<div class="card">${empty('No clocks running','')}</div>`}</div>
   </div>
   ${(()=>{const NX=B.filter(needsNext);return `<div class="card flush mt fade-up"><div class="card-h"><div><h3>Flagged — no next-action date</h3><p>Per UC-04, these Bills are listed here instead of raising a standard alert</p></div><span class="pill p-amber">${NX.length}</span></div><div class="tbl-wrap" style="margin-top:12px">${NX.length?`<table><thead><tr><th>Bill</th><th>Stage</th><th>Days at stage</th><th>Ministry</th><th class="r">${can('edit')?'':'View'}</th></tr></thead><tbody>${NX.map(b=>`<tr><td><b>${esc(b.title)}</b><small>${b.id}</small></td><td>${stagePill(b)}</td><td>${ageing(b)} days</td><td>${esc(b.ministry)}</td><td class="r" style="white-space:nowrap"><button class="icon-btn" title="View Bill" onclick="openBill('${b.id}')"><i class="ri-eye-line"></i></button>${can('edit')?` <button class="btn btn-sm" onclick="openNext('${b.id}')"><i class="ri-calendar-line"></i>Set date</button>`:''}</td></tr>`).join('')}</tbody></table>`:empty('Nothing flagged','Every active Bill has a next-action date.','ri-calendar-check-line')}</div></div>`})()}
-  <div class="card flush mt fade-up"><div class="card-h"><div><h3>Ageing and exception list</h3><p>Every running clock, worst first</p></div></div><div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>Bill</th><th>Stage</th><th>Limit</th><th>Elapsed</th><th>Ageing</th><th>Progress</th><th>Flag</th><th class="r">View</th></tr></thead><tbody>${T.map(({b,d})=>`<tr class="click" onclick="openBill('${b.id}')"><td><b>${esc(b.title)}</b><small>${b.id} · ${esc(b.ministry)}</small></td><td>${stagePill(b)}</td><td>${d.limit} days</td><td><b>${d.el}</b> days</td><td>${d.aging?`<b style="color:#e11d48">${d.aging} days</b>`:'0'}</td><td style="min-width:140px"><div class="bar ${d.state==='overdue'?'rose':d.state==='soon'?'amber':''}"><i style="width:${d.pct}%"></i></div></td><td>${dlChip(b)}</td><td class="r"><button class="icon-btn" title="View Bill"><i class="ri-eye-line"></i></button></td></tr>`).join('')}</tbody></table></div></div>`;
+  <div class="card flush mt fade-up"><div class="card-h"><div><h3>Ageing and exception list</h3><p>Every running clock, worst first</p></div></div><div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>Bill</th><th>Stage</th><th>Limit</th><th>Elapsed</th><th>Ageing</th><th>Progress</th><th>Flag</th><th class="r">View</th></tr></thead><tbody>${A2.map(({b,d})=>`<tr class="click" onclick="openBill('${b.id}')"><td><b>${esc(b.title)}</b><small>${b.id} · ${esc(b.ministry)}</small></td><td>${stagePill(b)}</td><td>${d.pre?'5 days (pre-adm.)':d.limit+' days'}</td><td><b>${d.el}</b> days</td><td>${d.aging?`<b style="color:#e11d48">${d.aging} days</b>`:'0'}</td><td style="min-width:140px"><div class="bar ${d.state==='overdue'?'rose':d.state==='soon'?'amber':''}"><i style="width:${d.pct}%"></i></div></td><td>${dlChip(b)}</td><td class="r"><button class="icon-btn" title="View Bill"><i class="ri-eye-line"></i></button></td></tr>`).join('')}</tbody></table></div></div>`;
 };
 
 /* ---------- Alerts ---------- */
@@ -2680,7 +2698,7 @@ PAGES.bill=()=>{
   </div>
   <div class="bt-row fade-up">
     ${tile('ri-flag-2-line','Current stage',esc(stageName(b)),`Stage ${b.si+1} of ${stagesOf(b).length}`,'g')}
-    ${d?tile('ri-timer-flash-line',b.ord?'Ordinance clock':d.short==='90-day'?'90-day clock':'Committee clock',`${d.el} of ${d.limit} days`,d.state==='overdue'?`<em class="bad">Overdue by ${-d.left} days</em>`:`${d.left} days left`,d.state==='overdue'?'r':d.state==='soon'?'a':'g'):tile('ri-time-line','Days at this stage',plural(ageing(b),'day'),'No running clock','b')}
+    ${d?tile('ri-timer-flash-line',b.ord?'Ordinance clock':d.short==='90-day'?'90-day clock':'Committee clock',`${d.el} of ${d.limit} days`,d.state==='overdue'?`<em class="bad">Overdue by ${-d.left} days</em>`:`${d.left} days left`,d.state==='overdue'?'r':d.state==='soon'?'a':'g'):preClock(b)?tile('ri-timer-flash-line','Response clock',`${preClock(b).el} of ${preClock(b).limit} days`,preClock(b).state==='overdue'?`<em class="bad">${plural(-preClock(b).left,'day')} late</em>`:`Reply by ${fmt(preClock(b).due)}`,preClock(b).state==='overdue'?'r':preClock(b).state==='soon'?'a':'g'):tile('ri-time-line','Days at this stage',plural(ageing(b),'day'),'No running clock','b')}
     ${tile('ri-question-answer-line','Ministry queries',openQueries(b).length?plural(openQueries(b).length,'open query','open queries'):'None open',openQueries(b).length?`Reply by ${fmt(openQueries(b).sort((a,c)=>a.due-c.due)[0].due)}`:`${(b.queries||[]).length} answered`,openQueries(b).some(q=>qState(q)==='r')?'r':openQueries(b).length?'a':'g')}
     ${tile('ri-calendar-check-line','Next action',b.next?fmt(b.next.date):(needsNext(b)?'<em class="bad">Not set</em>':'—'),b.next?esc(b.next.note):can('edit')&&b.status==='Active'?`<a class="link" onclick="openNext('${b.id}')">Set a date</a>`:'',b.next?'b':'a')}
   </div>
