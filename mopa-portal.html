@@ -1057,6 +1057,9 @@ i[data-ic]>svg{width:1em;height:1em;fill:currentColor}
 .dmix>div:first-child{width:100px;margin:-6px -2px}
 .s-compact .stat .lbl{white-space:normal}
 .dtools{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;margin:0 0 12px}
+.tbill{display:inline-flex;align-items:center;gap:9px;padding:6px 14px 6px 12px;border-radius:999px;background:linear-gradient(135deg,#ecfdf5,#eff6ff 60%,#f5f3ff);border:1px solid rgba(5,150,105,.2);font-size:13px;font-weight:600;color:var(--muted);white-space:nowrap;box-shadow:0 6px 16px -14px rgba(15,23,42,.45)}
+.tbill i{color:#059669;font-size:16px}
+.tbill b{font-size:19px;font-weight:800;color:var(--ink);letter-spacing:-.02em}
 .asof{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);font-weight:600}
 .asof i{color:#0d9488}.asof b{color:var(--ink)}
 .asof em{font-style:normal;font-size:13px;font-weight:700;color:#059669;background:rgba(16,185,129,.12);padding:2px 8px;border-radius:99px;display:inline-flex;align-items:center;gap:5px}
@@ -2478,7 +2481,7 @@ const PERIODS=[['all','All time'],['year','This year'],['180','Last 6 months'],[
 state.per=state.per||'all';
 const perF=B=>state.per==='all'?B:B.filter(b=>{const r=new Date(b.reg);return state.per==='year'?r.getFullYear()===TODAY.getFullYear():(TODAY-r)/DAY<=+state.per});
 function setPer(p){state.per=p;state.drill=[];render()}
-function dashTools(){return `<div class="dtools fade-up"><span class="asof"><em>Live</em>Data as of <b>${TODAY.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}, ${TODAY.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</b></span>
+function dashTools(total){return `<div class="dtools fade-up"><span class="tbill"><i class="ri-file-list-3-line"></i><b>${total||0}</b>Total Bills</span><span class="asof"><em>Live</em>Data as of <b>${TODAY.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}, ${TODAY.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</b></span>
   <div class="dt-act"><button class="btn btn-sm" onclick="printDash()"><i class="ri-printer-line"></i>Print</button><button class="btn btn-sm" onclick="downloadDash()"><i class="ri-download-2-line"></i>Download summary</button></div></div>`}
 function printDash(){document.body.classList.add('printing-dash');setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove('printing-dash'),400)},150)}
 function downloadDash(){const ALL=xF(perF(state.role==='min'?visibleBills():(state.role==='sec'||state.role==='pmo')?execBills():BILLS)),rows=[['Executive Dashboard Summary — Legislative Monitoring Dashboard'],['Data as of',TODAY.toLocaleString('en-GB')],['Period',PERIODS.find(p=>p[0]===state.per)[1]],[],['Workflow','Total Bills','In progress','At Standing Committee','In Other House','Overdue','Sent for assent','Assented']];
@@ -2540,7 +2543,7 @@ function dashPanel(t,B0,o={}){
   
   ${sec('04','House comparison &amp; monthly trend','Progress by House of origin and monthly movement of Bills')}
   ${(()=>{const r4=t==='PMB'?(cAssent('dAssent',t,B),box('dAssent','Presidential assent','Endorsed, assented, notified and printed in the Gazette')):(mins?box('dAct','Monthly activity','Bills registered, passed and assented in the last 12 months'):'');
-    return `<div class="grid ${r4?'g-3':'g-11'} mt">${box('dHouse','NA vs Senate','Where bills from each House have reached')}${r4}</div>${t==='PMB'&&mins?`<div class="grid mt">${box('dAct','Monthly activity','Bills registered, passed and assented in the last 12 months')}</div>`:''}`})()}
+    return `<div class="grid g-11 mt">${box('dHouse','NA vs Senate','Where bills from each House have reached')}${r4}</div>${t==='PMB'&&mins?`<div class="grid mt">${box('dAct','Monthly activity','Bills registered, passed and assented in the last 12 months')}</div>`:''}`})()}
   ${o.extra||''}
   </div>`;
 }
@@ -2568,13 +2571,13 @@ function dashMoPA(){
   return `
   
   ${dashFilters()}
-  ${dashTools()}
+  ${dashTools(B.length)}
   ${dashTabsBar(B)}
   ${dashPanel(t,B.filter(b=>b.type===t),{ministries:!state.x.ministry,emptyMsg:xOn()?NOMATCH:undefined})}`;
 }
 function dashExec(){
   const x=state.x;x.view='ALL';const ALL=xF(perF(execBills())),r=ROLE(),t=state.dTab,B=ALL.filter(b=>b.type===t);
-  return dashFilters()+dashTools()+dashTabsBar(ALL)+dashPanel(t,B,{ministries:!x.ministry,emptyMsg:xOn()?NOMATCH:undefined});
+  return dashFilters()+dashTools(ALL.length)+dashTabsBar(ALL)+dashPanel(t,B,{ministries:!x.ministry,emptyMsg:xOn()?NOMATCH:undefined});
 }
 function dashMinistry(){
   const B=xF(perF(visibleBills())),k=kpis(B),r=ROLE(),due=B.filter(responseDue),sent=B.reduce((a,b)=>a+b.responses.length,0),t=state.dTab;
@@ -2587,7 +2590,7 @@ function dashMinistry(){
   return `
   
   ${dashFilters()}
-  ${dashTools()}
+  ${dashTools(B.length)}
   ${dashTabsBar(B)}
   ${dashPanel(t,B.filter(b=>b.type===t),{ministries:false,extra,emptyMsg:xOn()?NOMATCH:'MoPA has not shared any Bill of this type with your Ministry.'})}`;
 }
@@ -2601,7 +2604,7 @@ function dashLaw(){
   return `
   
   ${dashFilters()}
-  ${dashTools()}
+  ${dashTools(B.length)}
   ${dashTabsBar(B)}
   ${dashPanel(t,B.filter(b=>b.type===t),{extra,emptyMsg:xOn()?NOMATCH:undefined})}`;
 }
