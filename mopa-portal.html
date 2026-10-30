@@ -1644,6 +1644,29 @@ const preOverdue=B=>B.filter(b=>preClock(b)?.state==='overdue');
 const responseDue=b=>b.status==='Active'&&!/Assented|Notified/.test(stageName(b))&&((b.type==='PMB'&&!b.art74)||openQueries(b).length>0);
 
 BILLS.forEach(b=>{if(b.status==='Active'&&!/Assented|Notified/.test(stageName(b))&&b.n%5!==0)b.next={date:new Date(TODAY.getTime()+(b.n%9+1)*DAY),note:NEXT_NOTES[b.n%5],by:STAFF[b.n%3]}});
+/* ---------------- Sessions (meeting 30 Oct 2026): OD and Gazette documents upload once per session and link to every Bill in it ---------------- */
+const SESSIONS=[
+ ['NA-46','National Assembly · 46th Session','12 Sep – 08 Oct 2026'],
+ ['NA-47','National Assembly · 47th Session','20 Oct – 21 Nov 2026'],
+ ['SEN-341','Senate · 341st Session','05 Sep – 02 Oct 2026'],
+ ['SEN-342','Senate · 342nd Session','18 Oct – 19 Nov 2026'],
+ ['JS-08','Joint Sitting · 8th Sitting','22 Nov 2026']];
+const SESS_NAME=Object.fromEntries(SESSIONS.map(x=>[x[0],x[1]]));
+const SESSION_SLOTS=['Order of the Day','Gazette Notification'];
+function billSessions(b){
+  const seq=[[ 'NA-47','NA-47'],['NA-46','NA-46'],['SEN-342','SEN-342'],['SEN-341','SEN-341'],['JS-08','JS-08']];
+  const key=b.house==='Joint'?'JS-08':(b.house==='NA'?'NA':'SEN')+'-'+(b.house==='NA'?47:342);
+  const alt=b.house==='NA'?'NA-46':b.house==='Senate'?'SEN-341':null;
+  return alt&&b.n%3===0?[alt,key]:[key];
+}
+/* one shared copy per session for the session-wide slots */
+const SESSION_DOCS={};
+function sessionDoc(sid,slot,b){
+  const k=sid+'|'+slot;
+  if(!SESSION_DOCS[k])SESSION_DOCS[k]={name:slot,ic:slot==='Gazette Notification'?'ri-government-line':'ri-calendar-check-line',bill:b.id,stage:b.type==='JS'?'In Agenda (OD)':'In Agenda (OD)',missing:(b.n+slot.length)%7===0,size:((b.n*29)%14+8)/10+' MB',date:new Date(TODAY-30*DAY+(b.n%9)*DAY),by:'NA Secretariat',session:sid,shared:true};
+  return Object.assign({},SESSION_DOCS[k],{bill:b.id});
+}
+
 /* ---------------- Legal reference library (meeting 30 Oct 2026): the frameworks MoPA works to ---------------- */
 const LEGAL_REF=[
  ['Constitution of Pakistan','Articles 70–75 · legislative procedure and assent','Constitution'],
@@ -1665,7 +1688,9 @@ function docsFor(b){
     const idx=st?sIdx(b,st):0;
     if(idx<0||b.si<idx)return;
     const missing=(name==='Order of the Day'&&b.n%4===1)||(name==='Committee Report'&&b.n%5===2)||(name==='Ministry Response'&&!b.art74);
-    out.push({name,ic,bill:b.id,stage:st||stagesOf(b)[0],missing,restricted:name==='Presidential Message',size:((b.n*37+k*13)%18+4)/10+' MB',date:b.history[Math.max(0,idx)]?.date||b.reg,by:STAFF[(b.n+k)%3]});
+    const sid=billSessions(b)[0];
+    if(SESSION_SLOTS.includes(name)&&sIdx(b,st)>=0)return void out.push(sessionDoc(sid,name,b));
+    out.push({name,ic,bill:b.id,stage:st||stagesOf(b)[0],missing,restricted:name==='Presidential Message',size:((b.n*37+k*13)%18+4)/10+' MB',date:b.history[Math.max(0,idx)]?.date||b.reg,by:STAFF[(b.n+k)%3],session:sid});
   });
   b.responses.forEach(r=>out.push({name:'Ministry Response',ic:'ri-chat-check-line',bill:b.id,stage:'Reply to MoPA',missing:false,size:'0.6 MB',date:r.date,by:r.by,file:r.file}));
   b.extraDocs.forEach(d=>out.push(d));
@@ -2232,15 +2257,17 @@ function markAll(){visibleAlerts().forEach(a=>a.read=true);toast('All alerts mar
 /* ---------- Documents ---------- */
 const canUpload=()=>can('edit');
 PAGES.documents=()=>{
-  const D=visibleBills().flatMap(docsFor),miss=D.filter(d=>d.missing);
+  const ALLD=visibleBills().flatMap(docsFor);
+  const sF=state.docS||'',D=ALLD.filter(d=>!sF||d.session===sF),miss=D.filter(d=>d.missing);
   const grads=['var(--grad-green)','var(--grad-blue)','var(--grad-teal)','var(--grad-indigo)','var(--grad-cyan)','var(--grad-emb)','var(--grad-main)'];
   return `<div class="ph"><div><span class="eyebrow">Document repository</span><h1>Documents</h1><p>Each document has a fixed slot tied to its stage and is linked to the Bill ID. Files up to 20 MB.</p></div>${canUpload()?`<div class="ph-actions"><button class="btn btn-primary" onclick="openUpload()"><i class="ri-upload-cloud-2-line"></i>Upload document</button></div>`:''}</div>
   <div class="grid g-auto">${DOC_SLOTS.map(([n,,ic],i)=>{const x=D.filter(d=>d.name===n);return `<div class="card folder fade-up" style="--d:${i*50}ms;${state.docF===n?'box-shadow:0 0 0 2px #10b981':''}" onclick="state.docF=state.docF==='${n}'?'':'${n}';render()"><div class="fi" style="background:${grads[i]}"><i class="${ic}"></i></div><div><b>${n}</b><span>${plural(x.filter(d=>!d.missing).length,'file')}${x.some(d=>d.missing)?` · <span style="color:#be123c">${x.filter(d=>d.missing).length} missing</span>`:''}</span></div></div>`}).join('')}</div>
   <div class="card flush mt fade-up"><div class="card-h"><div><h3>Legal reference library</h3><p>The frameworks every Bill is checked against — one copy, shared by every role</p></div><span class="pill p-indigo"><i class="ri-scales-3-line"></i>${LEGAL_REF.length} references</span></div>
     <div class="lr-grid" style="margin-top:12px">${LEGAL_REF.map(([n,note,tag])=>`<div class="lr-item"><div class="lr-ic"><i class="ri-scales-3-line"></i></div><div><b>${esc(n)}</b><span>${esc(note)}</span></div><button class="icon-btn" title="Download" onclick="toast('Downloading ${esc(n)}','ri-download-2-line')"><i class="ri-download-2-line"></i></button></div>`).join('')}</div></div>
   <div class="grid g-21 mt">
-    <div class="card flush fade-up"><div class="card-h"><div><h3>${state.docF?esc(state.docF):'All documents'}</h3><p>${D.filter(d=>!d.missing&&(!state.docF||d.name===state.docF)).length} files</p></div>${state.docF?`<button class="btn btn-sm" onclick="state.docF='';render()">Show all</button>`:''}</div>
-      <div class="tbl-wrap" style="margin-top:12px;max-height:560px"><table><thead><tr><th>Document</th><th>Bill</th><th>Stage</th><th>Uploaded</th><th>Size</th><th></th></tr></thead><tbody>${D.filter(d=>!d.missing&&(!state.docF||d.name===state.docF)).map(d=>`<tr><td><div style="display:flex;align-items:center;gap:10px"><span class="t-ic" style="width:32px;height:32px;background:var(--grad-teal)"><i class="${d.ic}"></i></span><b style="font-size:13px">${esc(d.name)}</b>${d.restricted?' <i class="ri-lock-line muted" title="Restricted"></i>':''}</div></td><td><a class="link" onclick="openBill('${d.bill}','docs')">${d.bill}</a></td><td><span class="muted">${esc(d.stage)}</span></td><td>${fmt(d.date)}<small>${esc(d.by)}</small></td><td>${d.size}</td><td class="r">${dlBtn(d)}</td></tr>`).join('')}</tbody></table></div></div>
+    <div class="card flush fade-up"><div class="card-h"><div><h3>${state.docF?esc(state.docF):'All documents'}</h3><p>${D.filter(d=>!d.missing&&(!state.docF||d.name===state.docF)).length} files</p></div>${state.docF?`<button class="btn btn-sm" onclick="state.docF='';render()">Show all</button>`:''}
+      <select class="input" style="max-width:240px" onchange="state.docS=this.value;render()"><option value="">All sessions</option>${SESSIONS.map(([id,n,])=>`<option value="${id}" ${state.docS===id?'selected':''}>${esc(n)}</option>`).join('')}</select></div>
+      <div class="tbl-wrap" style="margin-top:12px;max-height:560px"><table><thead><tr><th>Document</th><th>Session</th><th>Bill</th><th>Stage</th><th>Uploaded</th><th>Size</th><th></th></tr></thead><tbody>${D.filter(d=>!d.missing&&(!state.docF||d.name===state.docF)).map(d=>`<tr><td>${d.session?`<span class="pill p-slate">${esc(d.session)}${d.shared?' · shared':''}</span>`:'<span class="muted">—</span>'}</td><td><div style="display:flex;align-items:center;gap:10px"><span class="t-ic" style="width:32px;height:32px;background:var(--grad-teal)"><i class="${d.ic}"></i></span><b style="font-size:13px">${esc(d.name)}</b>${d.restricted?' <i class="ri-lock-line muted" title="Restricted"></i>':''}</div></td><td><a class="link" onclick="openBill('${d.bill}','docs')">${d.bill}</a></td><td><span class="muted">${esc(d.stage)}</span></td><td>${fmt(d.date)}<small>${esc(d.by)}</small></td><td>${d.size}</td><td class="r">${dlBtn(d)}</td></tr>`).join('')}</tbody></table></div></div>
     <div class="card fade-up"><div class="card-h"><div><h3>Missing documents</h3><p>Stages recorded without the document</p></div><span class="pill p-rose">${miss.length}</span></div>${miss.map(d=>`<div class="doc"><div class="di miss"><i class="ri-file-warning-line"></i></div><div class="sp"><b>${esc(d.name)}</b><span>${d.bill} · ${esc(d.stage)}</span></div>${canUpload()?`<button class="btn btn-sm" onclick="openUpload('${d.bill}','${esc(d.name)}')">Upload</button>`:'<span class="pill p-rose">Missing</span>'}</div>`).join('')||empty('Nothing missing','Every stage has its document.','ri-checkbox-circle-line')}</div>
   </div>`;
 };
@@ -2250,6 +2277,8 @@ function openUpload(bill,slot){
   <div class="m-b"><div class="form-grid"><label class="field"><span>Bill *</span><select class="input" id="upB">${V.map(b=>`<option value="${b.id}" ${b.id===bill?'selected':''}>${b.id} — ${esc(b.title.length>44?b.title.slice(0,44)+'…':b.title)}</option>`).join('')}</select></label>
   <label class="field"><span>Document type *</span><select class="input" id="upT">${slots.map(n=>`<option ${n===slot?'selected':''}>${n}</option>`).join('')}</select></label></div>
   <div class="drop" id="upDrop" onclick="$('#upF').click()" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')" ondrop="dropFile(event)"><input type="file" hidden id="upF" onchange="fileChosen(this,'upN')"><i class="ri-upload-cloud-2-line"></i><b id="upN">Drag a file here or click to browse</b><span>PDF, DOCX or JPG · up to 20 MB</span></div>
+  <div class="field"><span>Session</span><select class="input" id="upS"><option value="">Not session-specific</option>${SESSIONS.map(([id,n,d])=>`<option value="${id}">${esc(n)} · ${esc(d)}</option>`).join('')}</select></div>
+  <label class="chk" style="margin-bottom:8px"><input type="checkbox" id="upLink"> ${esc('Link one copy to every Bill in this session')}</label>
   <label class="chk" style="margin-bottom:12px"><input type="checkbox" id="upR"> Restricted — only MoPA (Admin, Data Manager, Secretary) can open it</label>
   <div class="errbox hidden" id="upE"></div></div>
   <div class="m-f"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveUpload()"><i class="ri-upload-2-line"></i>Upload</button></div>`);
@@ -2258,7 +2287,9 @@ let PICKED=null;
 function fileChosen(inp,lbl){const f=inp.files[0];if(!f)return;if(f.size>20*1024*1024){toast('That file is larger than 20 MB','ri-error-warning-line',true);inp.value='';PICKED=null;return}PICKED=f;const l=document.getElementById(lbl);if(l)l.textContent=f.name+' · '+(f.size/1048576).toFixed(1)+' MB'}
 function dropFile(e){e.preventDefault();const f=e.dataTransfer.files[0];$('#upDrop').classList.remove('over');if(!f)return;if(f.size>20*1024*1024){toast('That file is larger than 20 MB','ri-error-warning-line',true);return}PICKED=f;$('#upN').textContent=f.name}
 function saveUpload(){if(!PICKED){$('#upE').innerHTML='<i class="ri-error-warning-line"></i>Choose a file to upload.';$('#upE').classList.remove('hidden');return}
-  const b=byId($('#upB').value),t=$('#upT').value;b.extraDocs.push({name:t,ic:'ri-file-upload-line',bill:b.id,stage:stageName(b),missing:false,restricted:!!$('#upR')?.checked,size:(PICKED.size/1048576).toFixed(1)+' MB',date:new Date(),by:ROLE().user});
+  const b=byId($('#upB').value),t=$('#upT').value,sid=$('#upS')?.value||'',link=$('#upLink')?.checked,size=(PICKED.size/1048576).toFixed(1)+' MB';
+  const targets=link&&sid?visibleBills().filter(x=>billSessions(x).includes(sid)):[b];
+  targets.forEach(x=>x.extraDocs.push({name:t,ic:'ri-file-upload-line',bill:x.id,stage:stageName(x),missing:false,restricted:!!$('#upR')?.checked,size,date:new Date(),by:ROLE().user,session:sid||undefined,shared:!!(link&&sid)}));
   AUDIT.unshift({ts:new Date(),user:ROLE().user,bill:b.id,field:'Document',old:'—',nw:t+' uploaded',reason:PICKED.name});PICKED=null;closeModal();toast(`${t} added to ${b.id}`,'ri-upload-cloud-2-line');render()}
 
 /* ---------- Reports (BRD §16 / UC-06) ---------- */
