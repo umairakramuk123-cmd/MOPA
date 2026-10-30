@@ -1641,6 +1641,11 @@ function preClock(b){
   return {limit:PRE_DAYS,el,left,aging:Math.max(0,-left),state:left<0?'overdue':left<=1?'soon':'ok',due:new Date(b.preNotice.getTime()+PRE_DAYS*DAY)};
 }
 const preOverdue=B=>B.filter(b=>preClock(b)?.state==='overdue');
+/* The 5-day window is enforced: a reply after the deadline cannot be saved without a recorded reason, and it is flagged to MoPA */
+const lateBlock=b=>{const c=preClock(b);if(!c||c.state!=='overdue')return '';
+  return `<div class="warnbox"><i class="ri-alarm-warning-line" style="font-size:18px"></i><div><b>The 5-day window has closed.</b><br>This reply is ${plural(-c.left,'day')} late. It can still be sent, but a reason is required and MoPA is notified.</div></div>
+  <label class="field"><span>Reason for the late reply *</span><textarea class="input" id="lateR" rows="3" placeholder="Why the reply missed the 5-day window"></textarea></label>`};
+const lateOk=(b,reason)=>{const c=preClock(b);if(!c||c.state!=='overdue')return true;return !!reason};
 const responseDue=b=>b.status==='Active'&&!/Assented|Notified/.test(stageName(b))&&((b.type==='PMB'&&!b.art74)||openQueries(b).length>0);
 
 BILLS.forEach(b=>{if(b.status==='Active'&&!/Assented|Notified/.test(stageName(b))&&b.n%5!==0)b.next={date:new Date(TODAY.getTime()+(b.n%9+1)*DAY),note:NEXT_NOTES[b.n%5],by:STAFF[b.n%3]}});
@@ -1819,7 +1824,7 @@ const NAV={
  pmo:['dashboard','bills','deadlines','responses','documents','reports'],
 };
 const EXTRA_PAGES=['alerts','profile','bill'];
-const state={role:null,page:'dashboard',dTab:'OB',drill:[],billId:null,bTab:'data',tab:'ALL',f:{q:'',ministry:'',house:'',status:'',ruling:''},pg:1,alertF:'all',x:{view:'ALL',ministry:'',house:'',stage:'',status:'',mover:'',kind:''},rep:null,repF:{ministry:'',house:'',from:'',to:'',cat:'',stg:''},dsOpen:null,docF:'',auQ:'',helpT:'OB'};
+const state={role:null,page:'dashboard',dTab:'OB',drill:[],billId:null,bTab:'data',tab:'ALL',f:{q:'',ministry:'',house:'',status:'',ruling:''},pg:1,alertF:'all',x:{view:'ALL',ministry:'',house:'',stage:'',status:'',mover:'',kind:'',session:''},rep:null,repF:{ministry:'',house:'',from:'',to:'',cat:'',stg:''},dsOpen:null,docF:'',auQ:'',helpT:'OB'};
 const ROLE=()=>ROLES[state.role];
 const can=k=>!!ROLE()?.can[k];
 const canEdit=()=>can('edit');
@@ -2530,6 +2535,14 @@ function cAssent(id,t,B){const w=dfCount(B,'Assent','MoPA Endorsement for Assent
   donut(id,['Waiting for signature','Assented'],[w,a],['#6366f1','#059669'],'Bills',H_SM-30)}
 function cActivity(id,B){const t=trendData(B);
   chart(id,{chart:{type:'area',height:230},series:[{name:'Registered',data:t.reg},{name:'Passed',data:t.passed},{name:'Assented',data:t.enacted}],xaxis:{categories:t.labels,tickAmount:6,labels:{rotate:0,trim:false}},colors:['#2563eb','#14b8a6','#059669'],stroke:{curve:'smooth',width:3},legend:{position:'top'},markers:{size:0,hover:{size:6}}})}
+/* Session-wise breakdown (meeting 30 Oct 2026): how much business sits in each session */
+function cSession(id,B){
+  const rows=SESSIONS.map(([sid,name])=>B.filter(b=>billSessions(b).includes(sid)));
+  chart(id,{chart:{type:'bar',height:H_MD,stacked:true},series:[{name:'Official Bills',data:rows.map(r=>r.filter(b=>b.type==='OB').length)},{name:'Non-Official Bills',data:rows.map(r=>r.filter(b=>b.type==='PMB').length)},{name:'Joint Sitting',data:rows.map(r=>r.filter(b=>b.type==='JS').length)}],
+    xaxis:{categories:SESSIONS.map(([sid,n])=>sid),labels:{rotate:0,trim:false}},colors:['#059669','#2563eb','#6366f1'],legend:{position:'top'},
+    plotOptions:{bar:{borderRadius:6,columnWidth:'46%',borderRadiusApplication:'end',borderRadiusWhenStacked:'last'}},dataLabels:{enabled:true,style:{fontSize:'11px'}},
+    drill:i=>drill('session',SESSIONS[i][0])})}
+
 /* Non-Official Bills: Article 74 compliance as one radial (3 rings) */
 function cA74(id,B){const sec='Pre-Admissibility / Advance Notice',st=B.filter(b=>dfVal(b,sec,'Applicability of Article 74 (Ministry Stance)').yn),Y=B.filter(b=>b.art74==='Yes'),
   cons=Y.filter(b=>dfVal(b,sec,'Consent of Federal Government (Received/Not)').yn==='Yes'),I=B.filter(b=>b.si>=sIdx(b,'Introduced')),post=I.filter(b=>dfHas(b,'Introduction & Referral to SC','Post-Introduction Ministry Stance'));
@@ -2600,7 +2613,7 @@ function dashTabsBar(ALL){
 const AGE_BANDS=[['0–15 days',0,15],['16–30 days',16,30],['31–60 days',31,60],['61–90 days',61,90],['90+ days',91,99999]];
 const DRILL={stage:['Stage',(b,v)=>stageName(b)===v],sgroup:['Stage',(b,v)=>sgroupOf(b)===v],outcome:['Outcome',(b,v)=>outcome(b)===v],ministry:['Ministry/Division',(b,v)=>b.ministry===v],house:['House of Origin',(b,v)=>b.house===v],
   age:['Ageing',(b,v)=>{const r=AGE_BANDS.find(x=>x[0]===v);return b.status==='Active'&&!isDone(b)&&ageing(b)>=r[1]&&ageing(b)<=r[2]}],a74:['Article 74',(b,v)=>(dfVal(b,'Pre-Admissibility / Advance Notice','Applicability of Article 74 (Ministry Stance)').yn||'Awaited')===v],
-  mover:['Member(s) In-charge',(b,v)=>b.member===v],kind:['Bill Type',(b,v)=>(b.jsKind||'Official Bill')===v],clock:['Deadline',(b,v)=>(deadline(b)?.state||'none')===v]};
+  mover:['Member(s) In-charge',(b,v)=>b.member===v],kind:['Bill Type',(b,v)=>(b.jsKind||'Official Bill')===v],session:['Session',(b,v)=>billSessions(b).includes(v)],clock:['Deadline',(b,v)=>(deadline(b)?.state||'none')===v]};
 const OUT_LBL={Pending:'Pending decision',Passed:'Bill Passed',Deferred:'Bill Deferred',Withdrawn:'Bill Withdrawn',Assented:'Assented'};
 const CLOCK_LBL={ok:'Within limit',soon:'Reminder (10 days or less)',overdue:'Overdue'};
 state.drill=state.drill||[];
@@ -2618,7 +2631,7 @@ function dashPanel(t,B0,o={}){
   const name=DTABS.find(x=>x[0]===t)[1],B=applyDrill(B0);DRILL_IDS=B.map(b=>b.id);const db=drillBar(t,B.length);
   if(!B0.length)return `<div class="card">${empty(`No ${name} in this view`,o.emptyMsg||'Nothing has been recorded under this workflow yet.',DTABS.find(x=>x[0]===t)[2])}</div>`;
   if(!B.length)return db+`<div class="card">${empty('Nothing matches this drill-through','Remove a filter chip above to widen the view.','ri-filter-off-line')}</div>`;
-  cStageWise('dStage',t,B);cOutcome('dOut',B,t);cActivity('dAct',B);
+  cStageWise('dStage',t,B);cOutcome('dOut',B,t);cActivity('dAct',B);cSession('dSess',B);
   const mins=o.ministries!==false;
   const stats=`<div class="grid g-stats s-compact">${tabStats(t,B).join('')}</div>`;
   const minCard=mins?box('dMin','Ministry/Division-wise','Top 10 Ministries / Divisions by number of Bills · click a bar to drill','span2'):box('dAct','Monthly trend','Bills registered, passed and assented in the last 12 months','span2');
@@ -2635,6 +2648,8 @@ function dashPanel(t,B0,o={}){
   <div class="grid g-3 mt">${box('dStage','Stage-wise status','How many Bills are at each step of the law-making process. Click a bar to see them.','span2')}${box('dOut','House decision & outcome','Pending, passed, deferred, withdrawn or assented')}</div>
   ${sec('02','Committee pendency & inter-House transmission','Standing Committee deadlines and transmission to the Other House')}<div class="grid g-3 mt">${box('dSC','Standing Committee pendency',`Is each bill within its time limit? 30 days (NA), 60 days (Senate)${ext?` · ${plural(ext,'extension')} granted`:''}`)}${box('dOH','Transmitted Bills','Is each Bill within its 90-day limit?')}${third}</div>
   
+  ${sec('03','Session-wise progress','Bills in each session, and the decisions taken in it')}
+  <div class="grid mt">${box('dSess','Bills by session','Click a session to filter every chart',`span2`)}</div>
   ${sec('04','House comparison &amp; monthly trend','Progress by House of origin and monthly movement of Bills')}
   ${(()=>{const r4=t==='PMB'?(cAssent('dAssent',t,B),box('dAssent','President’s decision','MoPA endorsement, President’s decision, notification and Gazette copy')):(mins?box('dAct','Monthly trend','Bills registered, passed and assented in the last 12 months'):'');
     return `<div class="grid g-11 mt">${box('dHouse','House of origin','Where Bills from each House of origin have reached')}${r4}</div>${t==='PMB'&&mins?`<div class="grid mt">${box('dAct','Monthly trend','Bills registered, passed and assented in the last 12 months')}</div>`:''}`})()}
@@ -2651,14 +2666,14 @@ PAGES.dashboard=()=>{
 };
 /* ---------- dashboard filters: one shared bar for every role; every chart and tab count follows it ---------- */
 const NOMATCH='No Bills match these filters. Try a different tab or clear one of the filters.';
-const xF=B=>{const x=state.x;return B.filter(b=>(!x.kind||(x.kind==='Ordinance'?!!b.ord:!b.ord))&&(!x.ministry||b.ministry===x.ministry)&&(!x.house||b.house===x.house)&&(!x.stage||bucket(b)===x.stage)&&(!x.mover||(x.mover==='Minister-in-Charge'?b.member==='Minister-in-Charge':b.member===x.mover))&&(!x.status||(x.status==='Overdue'?deadline(b)?.state==='overdue':x.status==='Active'?b.status==='Active':outcome(b)===x.status)))};
-const xOn=()=>!!(state.x.ministry||state.x.house||state.x.stage||state.x.status||state.x.mover||state.x.kind);
-const clearX=()=>{state.x={view:'ALL',ministry:'',house:'',stage:'',status:'',mover:'',kind:''};render()};
+const xF=B=>{const x=state.x;return B.filter(b=>(!x.session||billSessions(b).includes(x.session))&&(!x.kind||(x.kind==='Ordinance'?!!b.ord:!b.ord))&&(!x.ministry||b.ministry===x.ministry)&&(!x.house||b.house===x.house)&&(!x.stage||bucket(b)===x.stage)&&(!x.mover||(x.mover==='Minister-in-Charge'?b.member==='Minister-in-Charge':b.member===x.mover))&&(!x.status||(x.status==='Overdue'?deadline(b)?.state==='overdue':x.status==='Active'?b.status==='Active':outcome(b)===x.status)))};
+const xOn=()=>!!(state.x.ministry||state.x.house||state.x.stage||state.x.status||state.x.mover||state.x.kind||state.x.session);
+const clearX=()=>{state.x={view:'ALL',ministry:'',house:'',stage:'',status:'',mover:'',kind:'',session:''};render()};
 function dashFilters(){
   const x=state.x,sel=(k,label,opts)=>`<select class="input" aria-label="${label}" onchange="setX('${k}',this.value)"><option value="">${label}</option>${opts.map(([v,l])=>`<option value="${esc(v)}" ${x[k]===v?'selected':''}>${esc(l)}</option>`).join('')}</select>`;
   const movers=[...new Set(BILLS.map(b=>b.member).filter(Boolean))].sort().map(m=>[m,m]);
   const min=state.role==='min'?'':sel('ministry',`All Ministries / Divisions (${MINISTRIES.length})`,MINISTRIES.map(m=>[m,m]));
-  return `<div class="card xbar fade-up"><span class="xb-l"><i class="ri-filter-3-line"></i>Filters</span><div class="filters">${min}${sel('house','All Houses',[['NA','National Assembly'],['Senate','Senate'],['Joint','Joint Sitting']])}${sel('mover','All movers / sponsoring Ministries',movers)}${sel('kind','All categories',[['Bill','Bills only'],['Ordinance','Ordinances only']])}${sel('stage','All stages',BUCKETS.map(s=>[s,s]))}${sel('status','All statuses',['Active','Overdue','Pending','Passed','Deferred','Withdrawn','Assented'].map(s=>[s,s]))}<button class="icon-btn" title="Clear filters" onclick="clearX()"><i class="ri-refresh-line"></i></button></div></div>`;
+  return `<div class="card xbar fade-up"><span class="xb-l"><i class="ri-filter-3-line"></i>Filters</span><div class="filters">${min}${sel('house','All Houses',[['NA','National Assembly'],['Senate','Senate'],['Joint','Joint Sitting']])}${sel('session','All sessions',SESSIONS.map(([id,n])=>[id,n]))}${sel('mover','All movers / sponsoring Ministries',movers)}${sel('kind','All categories',[['Bill','Bills only'],['Ordinance','Ordinances only']])}${sel('stage','All stages',BUCKETS.map(s=>[s,s]))}${sel('status','All statuses',['Active','Overdue','Pending','Passed','Deferred','Withdrawn','Assented'].map(s=>[s,s]))}<button class="icon-btn" title="Clear filters" onclick="clearX()"><i class="ri-refresh-line"></i></button></div></div>`;
 }
 function dashMoPA(){
   const t=state.dTab,B=xF(perF(BILLS));
@@ -3038,6 +3053,7 @@ function openRespond(id,qid){CONSENT=null;setTimeout(()=>$$('input[name="con"]')
    <label class="field"><span>Ministry stance / remarks *</span><textarea class="input" id="rpT" rows="4" placeholder="The Ministry’s remarks for MoPA"></textarea></label>
    <div class="drop" onclick="$('#rpF').click()"><input type="file" hidden id="rpF" onchange="fileChosen(this,'rpN')"><i class="ri-upload-cloud-2-line"></i><b id="rpN">Attach the signed reply *</b><span>PDF or DOCX · up to 20 MB</span></div>
    ${revise?`<label class="field"><span>Reason, if your stance has changed</span><input class="input" id="rpR" placeholder="e.g. Revised after Cabinet deliberation"></label>`:''}
+   ${pmb?lateBlock(b):''}
    <div class="errbox hidden" id="rpE"></div>
   </div>
   <div class="m-f"><span class="draft"><i class="ri-send-plane-line"></i>Goes to MoPA</span><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="sendResponse('${id}')"><i class="ri-send-plane-2-line"></i>Send reply</button></div>`);
@@ -3055,7 +3071,9 @@ function sendResponse(id){
   if(!PICKED)return err('Attach the signed reply.');
   if(pmb&&c==='Received'&&!CONSENT&&!b.consentFile)return err('Cabinet consent is marked as received — attach the consent document.');
   if(pmb&&b.art74&&a!==b.art74&&!rs)return err('Your stance has changed — give the reason. The earlier stance is kept on record.');
-  b.responses.push({text:t,by:ROLE().user,date:new Date(),file:PICKED.name,stance:a,consent:c,consentFile:pmb&&c==='Received'?(CONSENT?.name||b.consentFile):null,reason:rs,officer,query:q?q.text:null});
+  const lateRid=$('#lateR'),lateR=lateRid?lateRid.value.trim():'';
+  if(lateRid&&!lateR)return err('The 5-day window has closed — give the reason for the late reply.');
+  b.responses.push({text:t,by:ROLE().user,date:new Date(),file:PICKED.name,stance:a,consent:c,consentFile:pmb&&c==='Received'?(CONSENT?.name||b.consentFile):null,reason:rs,officer,query:q?q.text:null,lateReason:lateR||null});
   if(q){q.status='answered';q.answer={officer,remarks:t,by:ROLE().user,date:new Date(),file:PICKED.name}}
   if(pmb){if(b.art74&&a!==b.art74)AUDIT.unshift({ts:new Date(),user:ROLE().user,bill:id,field:'Article 74 stance (Ministry)',old:b.art74,nw:a,reason:rs});else if(!b.art74)AUDIT.unshift({ts:new Date(),user:ROLE().user,bill:id,field:'Article 74 stance (Ministry)',old:'—',nw:a,reason:'First Ministry response'});
     b.stanceLog.push({v:a,c,date:new Date(d),by:ROLE().user});b.art74=a;b.consent=c;b.stanceDate=new Date(d);if(c==='Received')b.consentFile=CONSENT?.name||b.consentFile;CONSENT=null}
@@ -3105,15 +3123,18 @@ function openStance(id){const b=byId(id);
   modal(`<div class="m-h"><div><span class="eyebrow">Ministry stance proforma</span><h3>${esc(b.title)}</h3><small class="muted">${b.id} · ${esc(b.ministry)}</small></div><button class="icon-btn" onclick="closeModal()"><i class="ri-close-line"></i></button></div>
   <div class="m-b"><div class="field"><span>Stance on the Bill *</span><div class="radio-row">${STANCES.map(v=>`<label class="radio"><input type="radio" name="stc" value="${v}" ${b.stance===v?'checked':''}>${v}</label>`).join('')}</div></div>
   <label class="field"><span>Remarks *</span><textarea class="input" id="stR" rows="4" placeholder="Why the Ministry takes this position">${esc(b.stanceRemark||'')}</textarea></label>
+  ${lateBlock(b)}
   ${b.stanceChanges&&b.stanceChanges.length?`<div class="okbox"><i class="ri-history-line"></i>Earlier stance: ${esc(b.stanceChanges[b.stanceChanges.length-1].stance)} · ${fmt(b.stanceChanges[b.stanceChanges.length-1].date)}. The change is kept in the audit trail.</div>`:''}
   <div class="errbox hidden" id="stE"></div></div>
   <div class="m-f"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveStance('${id}')"><i class="ri-save-3-line"></i>Save stance</button></div>`)}
-function saveStance(id){const b=byId(id),v=document.querySelector('input[name="stc"]:checked')?.value,r=$('#stR').value.trim(),e=$('#stE');
+function saveStance(id){const b=byId(id),v=document.querySelector('input[name="stc"]:checked')?.value,r=$('#stR').value.trim(),e=$('#stE'),lateR=($('#lateR')?.value||'').trim();
   if(!v||!r){e.innerHTML='<i class="ri-error-warning-line"></i>'+(!v?'Choose a stance.':'Add remarks explaining the stance.');e.classList.remove('hidden');return}
+  if(!lateOk(b,lateR)){e.innerHTML='<i class="ri-error-warning-line"></i>The 5-day window has closed — give the reason for the late reply.';e.classList.remove('hidden');return}
   const old=b.stance||'—';b.stance=v;b.stanceRemark=r;
-  b.stanceChanges=b.stanceChanges||[];b.stanceChanges.push({stance:v,remark:r,date:new Date(),by:ROLE().user});
+  b.stanceChanges=b.stanceChanges||[];b.stanceChanges.push({stance:v,remark:r,date:new Date(),by:ROLE().user,lateReason:lateR||null});
   AUDIT.unshift({ts:new Date(),user:ROLE().user,bill:id,field:'Ministry stance',old,nw:v,reason:r});
   pushAlert('milestone',`Ministry stance recorded: ${v}`,id,null,false,0);
+  if(lateR)pushAlert('response',`Late reply to the pre-admissibility notice — reason: ${lateR.slice(0,80)}`,id);
   closeModal();render();toast(`Stance recorded — ${v}`,'ri-user-star-line')}
 
 function openApprove(id){const b=byId(id);
