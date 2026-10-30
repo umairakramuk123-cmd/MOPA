@@ -1060,6 +1060,13 @@ i[data-ic]>svg{width:1em;height:1em;fill:currentColor}
 .tbill{display:inline-flex;align-items:center;gap:9px;padding:6px 14px 6px 12px;border-radius:999px;background:linear-gradient(135deg,#ecfdf5,#eff6ff 60%,#f5f3ff);border:1px solid rgba(5,150,105,.2);font-size:13px;font-weight:600;color:var(--muted);white-space:nowrap;box-shadow:0 6px 16px -14px rgba(15,23,42,.45)}
 .tbill i{color:#059669;font-size:16px}
 .tbill b{font-size:19px;font-weight:800;color:var(--ink);letter-spacing:-.02em}
+.lr-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.lr-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.lr-item>div:nth-child(2){flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.lr-item b{font-size:14px;color:var(--ink)}
+.lr-item span{font-size:12.5px;color:var(--muted);line-height:1.45}
+.lr-ic{width:38px;height:38px;flex:0 0 38px;border-radius:11px;display:grid;place-items:center;background:var(--grad-indigo);color:#fff;font-size:18px}
+@media (max-width:760px){.lr-grid{grid-template-columns:1fr}}
 .asof{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);font-weight:600}
 .asof i{color:#0d9488}.asof b{color:var(--ink)}
 .asof em{font-style:normal;font-size:13px;font-weight:700;color:#059669;background:rgba(16,185,129,.12);padding:2px 8px;border-radius:99px;display:inline-flex;align-items:center;gap:5px}
@@ -1583,7 +1590,7 @@ function stageTone(b){
 }
 const stagePill=b=>`<span class="pill dot p-${stageTone(b)}">${b.status==='Withdrawn'||b.status==='Deferred'?b.status+' · ':''}${esc(stageName(b))}</span>`;
 const typePill=b=>`<span class="pill p-${b.type==='OB'?'green':b.type==='PMB'?'blue':'indigo'}">${b.type==='PMB'?'PMB':TYPE_SHORT[b.type]}</span>${b.ord?'<span class="pill p-amber">Ordinance</span>':''}`;
-const stancePill=b=>b.stance?`<span class="pill p-${STANCE_TONE[b.stance]||'slate'}"><i class="ri-user-follow-line"></i>${b.stance}</span>`:'';
+const stancePill=b=>b.stance?`<span class="pill p-${STANCE_TONE[b.stance]||'slate'}"><i class="ri-user-star-line"></i>${b.stance}</span>`:'';
 /* Escalation colours (spec §3): Yellow = first reminder / approaching, Red = overdue / escalated, Green = actioned / on track */
 function dlChip(b){const d=deadline(b);if(!d)return '';
   if(d.state==='overdue')return `<span class="pill flag-r"><i class="ri-alarm-warning-line"></i>Ageing ${plural(d.aging,'day')}</span>`;
@@ -1637,14 +1644,23 @@ const preOverdue=B=>B.filter(b=>preClock(b)?.state==='overdue');
 const responseDue=b=>b.status==='Active'&&!/Assented|Notified/.test(stageName(b))&&((b.type==='PMB'&&!b.art74)||openQueries(b).length>0);
 
 BILLS.forEach(b=>{if(b.status==='Active'&&!/Assented|Notified/.test(stageName(b))&&b.n%5!==0)b.next={date:new Date(TODAY.getTime()+(b.n%9+1)*DAY),note:NEXT_NOTES[b.n%5],by:STAFF[b.n%3]}});
+/* ---------------- Legal reference library (meeting 30 Oct 2026): the frameworks MoPA works to ---------------- */
+const LEGAL_REF=[
+ ['Constitution of Pakistan','Articles 70–75 · legislative procedure and assent','Constitution'],
+ ['Rules of Procedure — National Assembly','Order of the Day, introduction, Committee and passage','NA Rules'],
+ ['Rules of Procedure — Senate','Order of the Day, Committee and passage in the Senate','Senate Rules'],
+ ['Rules of Business, 1973','How Ministries/Divisions process legislative proposals','Rules of Business'],
+ ['Joint Sitting Rules','Referral after 90 days and the Committee on Bills','Joint Sitting Rules'],
+ ['MoPA Standard Operating Procedures','Internal timelines, proformas and correspondence','SOPs']];
+
 /* ---------------- Documents (BRD §8 Document Repository) ---------------- */
 const canRestricted=()=>['admin','dm','sec'].includes(state.role);
 const dlBtn=d=>d.restricted&&!canRestricted()?'<span class="pill p-slate" title="Access to this document is limited by role"><i class="ri-lock-line"></i>Restricted</span>':`<button class="icon-btn" title="Download" onclick="toast(\'Downloading ${esc(d.name)}\',\'ri-download-2-line\')"><i class="ri-download-2-line"></i></button>`;
-const DOC_SLOTS=[['Copy of the Bill',null,'ri-file-text-line'],['Order of the Day','In Agenda (OD)','ri-calendar-check-line'],['Ministry Response','Pre-Admissibility','ri-chat-check-line'],['Committee Report','Report Presented','ri-file-chart-line'],['Transmitted Bill Copy','Transmitted','ri-send-plane-2-line'],['Presidential Message','Assent Pending','ri-quill-pen-line'],['Gazette Notification','Notified','ri-newspaper-line']];
+const DOC_SLOTS=[['Copy of the Bill',null,'ri-file-text-line'],['Statement of Objects and Reasons',null,'ri-file-list-3-line'],['Order of the Day','In Agenda (OD)','ri-calendar-check-line'],['Ministry Response','Pre-Admissibility','ri-chat-check-line'],['Ministry Proforma','Pre-Admissibility','ri-edit-2-line'],['Transmission Notice','Transmitted','ri-mail-send-line'],['Committee Report','Report Presented','ri-file-chart-line'],['Committee Amendments','Report Presented','ri-edit-2-line'],['Transmitted Bill Copy','Transmitted','ri-send-plane-2-line'],['Presidential Message','Assent Pending','ri-quill-pen-line'],['Gazette Notification','Notified','ri-government-line']];
 function docsFor(b){
   const out=[];
   DOC_SLOTS.forEach(([name,st,ic],k)=>{
-    if(name==='Ministry Response'&&b.type!=='PMB')return;
+    if((name==='Ministry Response'||name==='Ministry Proforma')&&b.type!=='PMB')return;
     if(name==='Presidential Message'&&!(b.status==='Assented'||stageName(b)==='Assent Pending'))return;
     const idx=st?sIdx(b,st):0;
     if(idx<0||b.si<idx)return;
@@ -1758,6 +1774,8 @@ const NAV_ITEMS={
  dashboard:{l:'Dashboard',i:'ri-dashboard-3-line',g:'Main'},
  bills:{l:'Bill Management',i:'ri-file-paper-2-line',g:'Main'},
  deadlines:{l:'Deadlines & Ageing',i:'ri-timer-flash-line',g:'Main'},
+ responses:{l:'Ministry Responses',i:'ri-chat-check-line',g:'Main'},
+ documents:{l:'Documents',i:'ri-folder-5-line',g:'Main'},
  reports:{l:'Reports',i:'ri-bar-chart-box-line',g:'Main'},
  audit:{l:'Audit Trail',i:'ri-history-line',g:'Administration'},
  users:{l:'User Management',i:'ri-team-line',g:'Administration'},
@@ -1768,12 +1786,12 @@ const NAV_ITEMS={
 /* Sidebar (spec §4): Dashboard, Bill Management (Official / Non-Official / Joint Sitting), Deadlines & Ageing, Reports.
    Notifications open from the bell in the top bar. Admin keeps the administration pages. */
 const NAV={
- admin:['dashboard','bills','deadlines','reports','audit','users','settings'],
- dm:['dashboard','bills','deadlines','reports'],
- sec:['dashboard','bills','deadlines','reports'],
- min:['dashboard','bills','deadlines'],
- law:['dashboard','bills','deadlines'],
- pmo:['dashboard','bills','deadlines','reports'],
+ admin:['dashboard','bills','deadlines','responses','documents','reports','audit','users','settings'],
+ dm:['dashboard','bills','deadlines','responses','documents','reports'],
+ sec:['dashboard','bills','deadlines','responses','documents','reports'],
+ min:['dashboard','bills','deadlines','responses','documents'],
+ law:['dashboard','bills','deadlines','documents'],
+ pmo:['dashboard','bills','deadlines','responses','documents','reports'],
 };
 const EXTRA_PAGES=['alerts','profile','bill'];
 const state={role:null,page:'dashboard',dTab:'OB',drill:[],billId:null,bTab:'data',tab:'ALL',f:{q:'',ministry:'',house:'',status:'',ruling:''},pg:1,alertF:'all',x:{view:'ALL',ministry:'',house:'',stage:'',status:'',mover:'',kind:''},rep:null,repF:{ministry:'',house:'',from:'',to:'',cat:'',stg:''},dsOpen:null,docF:'',auQ:'',helpT:'OB'};
@@ -2218,6 +2236,8 @@ PAGES.documents=()=>{
   const grads=['var(--grad-green)','var(--grad-blue)','var(--grad-teal)','var(--grad-indigo)','var(--grad-cyan)','var(--grad-emb)','var(--grad-main)'];
   return `<div class="ph"><div><span class="eyebrow">Document repository</span><h1>Documents</h1><p>Each document has a fixed slot tied to its stage and is linked to the Bill ID. Files up to 20 MB.</p></div>${canUpload()?`<div class="ph-actions"><button class="btn btn-primary" onclick="openUpload()"><i class="ri-upload-cloud-2-line"></i>Upload document</button></div>`:''}</div>
   <div class="grid g-auto">${DOC_SLOTS.map(([n,,ic],i)=>{const x=D.filter(d=>d.name===n);return `<div class="card folder fade-up" style="--d:${i*50}ms;${state.docF===n?'box-shadow:0 0 0 2px #10b981':''}" onclick="state.docF=state.docF==='${n}'?'':'${n}';render()"><div class="fi" style="background:${grads[i]}"><i class="${ic}"></i></div><div><b>${n}</b><span>${plural(x.filter(d=>!d.missing).length,'file')}${x.some(d=>d.missing)?` · <span style="color:#be123c">${x.filter(d=>d.missing).length} missing</span>`:''}</span></div></div>`}).join('')}</div>
+  <div class="card flush mt fade-up"><div class="card-h"><div><h3>Legal reference library</h3><p>The frameworks every Bill is checked against — one copy, shared by every role</p></div><span class="pill p-indigo"><i class="ri-scales-3-line"></i>${LEGAL_REF.length} references</span></div>
+    <div class="lr-grid" style="margin-top:12px">${LEGAL_REF.map(([n,note,tag])=>`<div class="lr-item"><div class="lr-ic"><i class="ri-scales-3-line"></i></div><div><b>${esc(n)}</b><span>${esc(note)}</span></div><button class="icon-btn" title="Download" onclick="toast('Downloading ${esc(n)}','ri-download-2-line')"><i class="ri-download-2-line"></i></button></div>`).join('')}</div></div>
   <div class="grid g-21 mt">
     <div class="card flush fade-up"><div class="card-h"><div><h3>${state.docF?esc(state.docF):'All documents'}</h3><p>${D.filter(d=>!d.missing&&(!state.docF||d.name===state.docF)).length} files</p></div>${state.docF?`<button class="btn btn-sm" onclick="state.docF='';render()">Show all</button>`:''}</div>
       <div class="tbl-wrap" style="margin-top:12px;max-height:560px"><table><thead><tr><th>Document</th><th>Bill</th><th>Stage</th><th>Uploaded</th><th>Size</th><th></th></tr></thead><tbody>${D.filter(d=>!d.missing&&(!state.docF||d.name===state.docF)).map(d=>`<tr><td><div style="display:flex;align-items:center;gap:10px"><span class="t-ic" style="width:32px;height:32px;background:var(--grad-teal)"><i class="${d.ic}"></i></span><b style="font-size:13px">${esc(d.name)}</b>${d.restricted?' <i class="ri-lock-line muted" title="Restricted"></i>':''}</div></td><td><a class="link" onclick="openBill('${d.bill}','docs')">${d.bill}</a></td><td><span class="muted">${esc(d.stage)}</span></td><td>${fmt(d.date)}<small>${esc(d.by)}</small></td><td>${d.size}</td><td class="r">${dlBtn(d)}</td></tr>`).join('')}</tbody></table></div></div>
@@ -2672,7 +2692,7 @@ PAGES.bill=()=>{
   const acts=[];
   if(can('edit'))acts.push(`<button class="btn btn-primary" onclick="openUpdate('${b.id}')"><i class="ri-git-commit-line"></i>Update stage</button>`,`<button class="btn" onclick="openEditDetails('${b.id}')"><i class="ri-edit-line"></i>Edit details</button>`,`<button class="btn" onclick="openQuery('${b.id}')"><i class="ri-question-answer-line"></i>Send query</button>`,`<button class="btn" onclick="openRuling('${b.id}')"><i class="ri-auction-line"></i>Record ruling</button>`);
   if(can('respond')&&own)acts.push(`<button class="btn btn-primary" onclick="openRespond('${b.id}')"><i class="ri-reply-line"></i>Respond to MoPA</button>`);
-  if(b.type==='PMB'&&own&&can('respond'))acts.push(`<button class="btn" onclick="openStance('${b.id}')"><i class="ri-user-follow-line"></i>${b.stance?'Update stance':'Ministry stance'}</button>`);
+  if(b.type==='PMB'&&own&&can('respond'))acts.push(`<button class="btn" onclick="openStance('${b.id}')"><i class="ri-user-star-line"></i>${b.stance?'Update stance':'Ministry stance'}</button>`);
   if(can('remarks'))acts.push(`<button class="btn btn-primary" onclick="openRemarks('${b.id}')"><i class="ri-edit-2-line"></i>${b.lawCleared?'Add remarks':'Add remarks / clear'}</button>`);
   if(can('approve'))acts.push(`<button class="btn btn-primary" onclick="openApprove('${b.id}')"><i class="ri-checkbox-circle-line"></i>${b.approvals.length?'Approve again':'Approve'}</button>`);
   if(!can('edit'))acts.push(`<span class="pill p-slate"><i class="ri-lock-line"></i>${r.readonly?'View only':'Read-only · edited by MoPA'}</span>`);
@@ -3063,7 +3083,7 @@ function saveStance(id){const b=byId(id),v=document.querySelector('input[name="s
   b.stanceChanges=b.stanceChanges||[];b.stanceChanges.push({stance:v,remark:r,date:new Date(),by:ROLE().user});
   AUDIT.unshift({ts:new Date(),user:ROLE().user,bill:id,field:'Ministry stance',old,nw:v,reason:r});
   pushAlert('milestone',`Ministry stance recorded: ${v}`,id,null,false,0);
-  closeModal();render();toast(`Stance recorded — ${v}`,'ri-user-follow-line')}
+  closeModal();render();toast(`Stance recorded — ${v}`,'ri-user-star-line')}
 
 function openApprove(id){const b=byId(id);
   modal(`<div class="m-h"><div><span class="eyebrow">Approve file</span><h3>${esc(b.title)}</h3><small class="muted">${b.id} · ${esc(stageName(b))}</small></div><button class="icon-btn" onclick="closeModal()"><i class="ri-close-line"></i></button></div>
