@@ -1556,7 +1556,7 @@ const stagePill=b=>`<span class="pill dot p-${stageTone(b)}">${b.status==='Withd
 const typePill=b=>`<span class="pill p-${b.type==='OB'?'green':b.type==='PMB'?'blue':'indigo'}">${b.type==='PMB'?'PMB':TYPE_SHORT[b.type]}</span>`;
 /* Escalation colours (spec §3): Yellow = first reminder / approaching, Red = overdue / escalated, Green = actioned / on track */
 function dlChip(b){const d=deadline(b);if(!d)return '';
-  if(d.state==='overdue')return `<span class="pill flag-r"><i class="ri-alarm-warning-line"></i>Aging ${plural(d.aging,'day')}</span>`;
+  if(d.state==='overdue')return `<span class="pill flag-r"><i class="ri-alarm-warning-line"></i>Ageing ${plural(d.aging,'day')}</span>`;
   if(d.state==='soon')return `<span class="pill flag-y"><i class="ri-timer-line"></i>Reminder · ${plural(d.left,'day')} left</span>`;
   return `<span class="pill flag-g"><i class="ri-checkbox-circle-line"></i>${d.left} days left</span>`}
 const openQueries=b=>(b.queries||[]).filter(q=>q.status==='open');
@@ -1564,7 +1564,7 @@ const qState=q=>q.status!=='open'?'g':(q.due-TODAY)/DAY<0?'r':(q.due-TODAY)/DAY<
 /* one overall flag per Bill: worst of deadline clock and open MoPA queries */
 function flagOf(b){
   const d=deadline(b),qs=openQueries(b).map(qState);
-  if(d?.state==='overdue')return {t:'r',x:`Overdue · aging ${plural(d.aging,'day')}`};
+  if(d?.state==='overdue')return {t:'r',x:`Overdue · ageing ${plural(d.aging,'day')}`};
   if(qs.includes('r'))return {t:'r',x:'Ministry reply overdue'};
   if(d?.state==='soon')return {t:'y',x:`Reminder · ${plural(d.left,'day')} left`};
   if(qs.includes('y'))return {t:'y',x:'Ministry reply due soon'};
@@ -1717,7 +1717,7 @@ const ROLES={
 const NAV_ITEMS={
  dashboard:{l:'Dashboard',i:'ri-dashboard-3-line',g:'Main'},
  bills:{l:'Bill Management',i:'ri-file-paper-2-line',g:'Main'},
- deadlines:{l:'Deadlines & Aging',i:'ri-timer-flash-line',g:'Main'},
+ deadlines:{l:'Deadlines & Ageing',i:'ri-timer-flash-line',g:'Main'},
  reports:{l:'Reports',i:'ri-bar-chart-box-line',g:'Main'},
  audit:{l:'Audit Trail',i:'ri-history-line',g:'Administration'},
  users:{l:'User Management',i:'ri-team-line',g:'Administration'},
@@ -1725,7 +1725,7 @@ const NAV_ITEMS={
  alerts:{l:'Notifications',i:'ri-notification-3-line',g:'—'},
  exec:{l:'Executive Dashboard',i:'ri-pie-chart-2-line',g:'—'},
 };
-/* Sidebar (spec §4): Dashboard, Bill Management (Official / Non-Official / Joint Sitting), Deadlines & Aging, Reports.
+/* Sidebar (spec §4): Dashboard, Bill Management (Official / Non-Official / Joint Sitting), Deadlines & Ageing, Reports.
    Notifications open from the bell in the top bar. Admin keeps the administration pages. */
 const NAV={
  admin:['dashboard','bills','deadlines','reports','audit','users','settings'],
@@ -2114,9 +2114,9 @@ PAGES.responses=()=>{
   return `
   <div class="ph"><div><span class="eyebrow">Tracking</span><h1>Ministry Responses</h1><p>Replies from Ministries / Divisions on each Bill, and their stance on Article 74 and Cabinet consent for Non-Official Bills. Changed stances are kept in the audit trail.</p></div></div>
   <div class="grid g-stats">
-    ${stat('Replies awaited',due.length,'ri-chat-history-line','var(--grad-rose)',`From ${new Set(due.map(b=>b.ministry)).size} Ministries`,due.length/BILLS.length,0)}
-    ${stat('Replies received',BILLS.reduce((a,b)=>a+b.responses.length,0),'ri-chat-check-line','var(--grad-main)','All workflows',1,1)}
-    ${stat('Article 74 applies',P.filter(b=>b.art74==='Yes').length,'ri-file-shield-2-line','var(--grad-indigo)','Cabinet consent needed',P.filter(b=>b.art74==='Yes').length/P.length,2)}
+    ${stat('Pending responses',due.length,'ri-chat-history-line','var(--grad-rose)',`From ${new Set(due.map(b=>b.ministry)).size} Ministries`,due.length/BILLS.length,0)}
+    ${stat('Responses received',BILLS.reduce((a,b)=>a+b.responses.length,0),'ri-chat-check-line','var(--grad-main)','All workflows',1,1)}
+    ${stat('Article 74 applicable',P.filter(b=>b.art74==='Yes').length,'ri-file-shield-2-line','var(--grad-indigo)','Cabinet consent needed',P.filter(b=>b.art74==='Yes').length/P.length,2)}
     ${stat('Cabinet consent received',P.filter(b=>b.consent==='Received').length,'ri-checkbox-circle-line','var(--grad-blue)',`${P.filter(b=>b.consent==='Pending').length} still pending`,P.filter(b=>b.consent==='Received').length/Math.max(1,P.filter(b=>b.art74==='Yes').length),3)}
   </div>
   <div class="grid g-21 mt">
@@ -2141,19 +2141,19 @@ PAGES.deadlines=()=>{
   const bands=[['0–15',0,15],['16–30',16,30],['31–60',31,60],['61–90',61,90],['90+',91,9999]];
   chart('chAge',{chart:{type:'bar',height:290},series:[{name:'Bills',data:bands.map(([,a,z])=>act.filter(b=>ageing(b)>=a&&ageing(b)<=z).length)}],xaxis:{categories:bands.map(x=>x[0]+' days')},yaxis:{labels:{formatter:v=>Math.round(v)}},
     plotOptions:{bar:{borderRadius:8,columnWidth:'46%',distributed:true}},colors:['#10b981','#14b8a6','#0ea5e9','#2563eb','#f43f5e'],legend:{show:false},dataLabels:{enabled:true,style:{fontSize:'13px',fontWeight:700}}});
-  return `<div class="ph"><div><span class="eyebrow">Deadline tracking</span><h1>Deadlines &amp; Aging</h1><p>Limits: National Assembly 30 days, Senate 60 days, Other House / combined 90 days. Aging counts the days past the limit (Day 61 in the Senate = 1 day aging). Flags: <span class="pill flag-y">Yellow</span> first reminder, <span class="pill flag-r">Red</span> overdue, <span class="pill flag-g">Green</span> on track / actioned.</p></div>${can('export')||state.role==='sec'?`<div class="ph-actions"><button class="btn" onclick="openReport(12)"><i class="ri-file-chart-line"></i>Ageing report</button></div>`:''}</div>
+  return `<div class="ph"><div><span class="eyebrow">Deadline tracking</span><h1>Deadlines &amp; Ageing</h1><p>Limits: National Assembly 30 days, Senate 60 days, Other House / combined 90 days. Ageing counts the days past the limit (Day 61 in the Senate = 1 day aging). Flags: <span class="pill flag-y">Yellow</span> first reminder, <span class="pill flag-r">Red</span> overdue, <span class="pill flag-g">Green</span> on track / actioned.</p></div>${can('export')||state.role==='sec'?`<div class="ph-actions"><button class="btn" onclick="openReport(12)"><i class="ri-file-chart-line"></i>Ageing report</button></div>`:''}</div>
   <div class="grid g-stats">
     ${stat('Overdue',o,'ri-alarm-warning-line','var(--grad-rose)','Red flag · escalated',o/Math.max(1,T.length),0)}
     ${stat('Due within 10 days',s,'ri-timer-flash-line','var(--grad-amber)','Yellow flag · reminder sent',s/Math.max(1,T.length),1)}
     ${stat('On track',T.length-o-s,'ri-checkbox-circle-line','var(--grad-main)',`${plural(T.length,'clock')} running`,(T.length-o-s)/Math.max(1,T.length),2)}
-    ${stat('Total aging days',T.reduce((a,x)=>a+x.d.aging,0),'ri-hourglass-line','var(--grad-blue)','Days past limit, all Bills',.5,3)}
+    ${stat('Total ageing days',T.reduce((a,x)=>a+x.d.aging,0),'ri-hourglass-line','var(--grad-blue)','Days past limit, all Bills',.5,3)}
   </div>
   <div class="grid g-12 mt">
     <div class="card fade-up"><div class="card-h"><div><h3>Ageing bands</h3><p>Days active Bills have spent at their current stage</p></div></div><div id="chAge"></div></div>
     <div class="grid g-11" style="align-content:start">${T.map(({b,d},i)=>`<div class="card dlcard fade-up" style="--d:${i*60}ms" onclick="openBill('${b.id}')"><div class="ring" style="--p:${d.pct};--c:${d.state==='overdue'?'#f43f5e':d.state==='soon'?'#f59e0b':'#10b981'}"><span>${d.state==='overdue'?'+'+(-d.left):d.left}d</span></div><div class="m"><b>${esc(b.title)}</b><small class="muted">${d.label}</small><div style="margin-top:6px">${dlChip(b)}</div></div></div>`).join('')||`<div class="card">${empty('No clocks running','')}</div>`}</div>
   </div>
   ${(()=>{const NX=B.filter(needsNext);return `<div class="card flush mt fade-up"><div class="card-h"><div><h3>Flagged — no next-action date</h3><p>Per UC-04, these Bills are listed here instead of raising a standard alert</p></div><span class="pill p-amber">${NX.length}</span></div><div class="tbl-wrap" style="margin-top:12px">${NX.length?`<table><thead><tr><th>Bill</th><th>Stage</th><th>Days at stage</th><th>Ministry</th><th class="r">${can('edit')?'':'View'}</th></tr></thead><tbody>${NX.map(b=>`<tr><td><b>${esc(b.title)}</b><small>${b.id}</small></td><td>${stagePill(b)}</td><td>${ageing(b)} days</td><td>${esc(b.ministry)}</td><td class="r" style="white-space:nowrap"><button class="icon-btn" title="View Bill" onclick="openBill('${b.id}')"><i class="ri-eye-line"></i></button>${can('edit')?` <button class="btn btn-sm" onclick="openNext('${b.id}')"><i class="ri-calendar-line"></i>Set date</button>`:''}</td></tr>`).join('')}</tbody></table>`:empty('Nothing flagged','Every active Bill has a next-action date.','ri-calendar-check-line')}</div></div>`})()}
-  <div class="card flush mt fade-up"><div class="card-h"><div><h3>Aging and exception list</h3><p>Every running clock, worst first</p></div></div><div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>Bill</th><th>Stage</th><th>Limit</th><th>Elapsed</th><th>Aging</th><th>Progress</th><th>Flag</th><th class="r">View</th></tr></thead><tbody>${T.map(({b,d})=>`<tr class="click" onclick="openBill('${b.id}')"><td><b>${esc(b.title)}</b><small>${b.id} · ${esc(b.ministry)}</small></td><td>${stagePill(b)}</td><td>${d.limit} days</td><td><b>${d.el}</b> days</td><td>${d.aging?`<b style="color:#e11d48">${d.aging} days</b>`:'0'}</td><td style="min-width:140px"><div class="bar ${d.state==='overdue'?'rose':d.state==='soon'?'amber':''}"><i style="width:${d.pct}%"></i></div></td><td>${dlChip(b)}</td><td class="r"><button class="icon-btn" title="View Bill"><i class="ri-eye-line"></i></button></td></tr>`).join('')}</tbody></table></div></div>`;
+  <div class="card flush mt fade-up"><div class="card-h"><div><h3>Ageing and exception list</h3><p>Every running clock, worst first</p></div></div><div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>Bill</th><th>Stage</th><th>Limit</th><th>Elapsed</th><th>Ageing</th><th>Progress</th><th>Flag</th><th class="r">View</th></tr></thead><tbody>${T.map(({b,d})=>`<tr class="click" onclick="openBill('${b.id}')"><td><b>${esc(b.title)}</b><small>${b.id} · ${esc(b.ministry)}</small></td><td>${stagePill(b)}</td><td>${d.limit} days</td><td><b>${d.el}</b> days</td><td>${d.aging?`<b style="color:#e11d48">${d.aging} days</b>`:'0'}</td><td style="min-width:140px"><div class="bar ${d.state==='overdue'?'rose':d.state==='soon'?'amber':''}"><i style="width:${d.pct}%"></i></div></td><td>${dlChip(b)}</td><td class="r"><button class="icon-btn" title="View Bill"><i class="ri-eye-line"></i></button></td></tr>`).join('')}</tbody></table></div></div>`;
 };
 
 /* ---------- Alerts ---------- */
@@ -2454,26 +2454,26 @@ function tabStats(t,B){const k=kpis(B),A=activeOf(B),od=B.filter(b=>deadline(b)?
   const sc=B.filter(b=>stageName(b)==='Standing Committee'),tr=B.filter(b=>/Transmitted|Other House/.test(stageName(b)));
   if(t==='OB')return [
     stat('Official Bills',B.length,'ri-government-line','var(--grad-slate)',`<span>NA ${k.na}</span><span>Senate ${k.sen}</span>`,1,0),
-    stat('In Committee',sc.length,'ri-team-line','var(--grad-teal)',`${sc.filter(b=>deadline(b)?.state==='overdue').length} past deadline`,sh(sc.length),1),
+    stat('Standing Committee',sc.length,'ri-team-line','var(--grad-teal)',`${sc.filter(b=>deadline(b)?.state==='overdue').length} past deadline`,sh(sc.length),1),
     stat('In Other House',tr.length,'ri-send-plane-2-line','var(--grad-blue)','90-day limit running',sh(tr.length),2),
-    stat('Late',od,'ri-alarm-warning-line','var(--grad-rose)',`${k.soon} more due in 10 days`,sh(od),3),
-    stat('With President',k.assent,'ri-quill-pen-line','var(--grad-indigo)','Waiting for signature',sh(k.assent),4),
-    stat('Signed into law',k.enacted,'ri-award-line','var(--grad-green)',`${B.filter(b=>stageName(b)==='Notified').length} in the Gazette`,sh(k.enacted),5)];
+    stat('Overdue',od,'ri-alarm-warning-line','var(--grad-rose)',`${k.soon} more due in 10 days`,sh(od),3),
+    stat('Pending assent',k.assent,'ri-quill-pen-line','var(--grad-indigo)','Waiting for signature',sh(k.assent),4),
+    stat('Assented',k.enacted,'ri-award-line','var(--grad-green)',`${B.filter(b=>stageName(b)==='Notified').length} in the Gazette`,sh(k.enacted),5)];
   if(t==='PMB'){const aw=B.filter(b=>!dfVal(b,'Pre-Admissibility / Advance Notice','Applicability of Article 74 (Ministry Stance)').yn).length,cr=B.filter(b=>dfVal(b,'Pre-Admissibility / Advance Notice','Consent of Federal Government (Received/Not)').yn==='Yes').length;return [
     stat('Non-Official Bills',B.length,'ri-user-star-line','var(--grad-blue)',`<span>NA ${k.na}</span><span>Senate ${k.sen}</span>`,1,0),
-    stat('Ministry view awaited',aw,'ri-chat-history-line','var(--grad-amber)','On Article 74',sh(aw),1),
-    stat('Cabinet consent',cr,'ri-shield-check-line','var(--grad-green)','Received',sh(cr),2),
-    stat('In Committee',sc.length,'ri-team-line','var(--grad-teal)',`${sc.filter(b=>deadline(b)?.state==='overdue').length} past deadline`,sh(sc.length),3),
+    stat('Ministry stance awaited',aw,'ri-chat-history-line','var(--grad-amber)','On Article 74',sh(aw),1),
+    stat('Cabinet consent received',cr,'ri-shield-check-line','var(--grad-green)','Received',sh(cr),2),
+    stat('Standing Committee',sc.length,'ri-team-line','var(--grad-teal)',`${sc.filter(b=>deadline(b)?.state==='overdue').length} past deadline`,sh(sc.length),3),
     stat('Overdue',od,'ri-alarm-warning-line','var(--grad-rose)',`${k.soon} more due in 10 days`,sh(od),4),
-    stat('Signed into law',k.enacted,'ri-award-line','var(--grad-indigo)',`${A.length} still in progress`,sh(k.enacted),5)]}
+    stat('Assented',k.enacted,'ri-award-line','var(--grad-indigo)',`${A.length} still in progress`,sh(k.enacted),5)]}
   const cob=B.filter(b=>stageName(b)==='Committee on Bills').length,rp=dfCount(B,'Report Presented','Inclusion of Report on OD'),ps=dfCount(B,'Decision of Joint Sitting','Bill Passed');
   return [
     stat('Joint Sitting Bills',B.length,'ri-group-line','var(--grad-indigo)',`<span>Official ${B.filter(b=>b.jsKind!=='Non-Official Bill').length}</span><span>Non-Official ${B.filter(b=>b.jsKind==='Non-Official Bill').length}</span>`,1,0),
-    stat('In Committee',cob,'ri-team-line','var(--grad-teal)','Under review',sh(cob),1),
-    stat('Report done',rp,'ri-file-chart-line','var(--grad-blue)','Presented to Joint Sitting',sh(rp),2),
+    stat('Committee on Bills',cob,'ri-team-line','var(--grad-teal)','Under review',sh(cob),1),
+    stat('Report presented',rp,'ri-file-chart-line','var(--grad-blue)','Presented to Joint Sitting',sh(rp),2),
     stat('Passed',ps,'ri-checkbox-circle-line','var(--grad-teal)','By the Joint Sitting',sh(ps),3),
-    stat('With President',k.assent,'ri-quill-pen-line','var(--grad-amber)','Waiting for signature',sh(k.assent),4),
-    stat('Signed into law',k.enacted,'ri-award-line','var(--grad-green)','Published by NA Secretariat',sh(k.enacted),5)];
+    stat('Pending assent',k.assent,'ri-quill-pen-line','var(--grad-amber)','Waiting for signature',sh(k.assent),4),
+    stat('Assented',k.enacted,'ri-award-line','var(--grad-green)','Published by NA Secretariat',sh(k.enacted),5)];
 }
 
 /* ---------- dashboard toolbar: data as-of, period, print & download (BRD §16 Executive Dashboard Summary) ---------- */
@@ -2527,23 +2527,23 @@ function dashPanel(t,B0,o={}){
   cStageWise('dStage',t,B);cOutcome('dOut',B,t);cActivity('dAct',B);
   const mins=o.ministries!==false;
   const stats=`<div class="grid g-stats s-compact">${tabStats(t,B).join('')}</div>`;
-  const minCard=mins?box('dMin','Top Ministries','Top 10 Ministries / Divisions by number of Bills · click a bar to drill','span2'):box('dAct','Monthly activity','Bills registered, passed and assented in the last 12 months','span2');
-  const actCard=mins?box('dAct','Monthly activity','Bills registered, passed and assented in the last 12 months','span2'):'';
+  const minCard=mins?box('dMin','Ministry/Division-wise','Top 10 Ministries / Divisions by number of Bills · click a bar to drill','span2'):box('dAct','Monthly trend','Bills registered, passed and assented in the last 12 months','span2');
+  const actCard=mins?box('dAct','Monthly trend','Bills registered, passed and assented in the last 12 months','span2'):'';
   if(t==='JS'){cCoB('dCoB',B);cJSKind('dKind',B);cAssent('dAssent',t,B);
-    return `<div class="dpanel" data-tab="JS">${db}${sec('01','Bill status','Where every Bill is now and how each one ended')}
-    <div class="grid g-3 mt">${box('dStage','Joint Sitting by stage','How many bills are at each step. Click a bar to see them.','span2')}${box('dOut','Bill outcomes','Passed, deferred, withdrawn or assented')}</div>
-    ${sec('02','Committee and assent','Joint Sitting Bills in committee, by house and by the President stage')}<div class="grid g-11 mt">${box('dCoB','Committee on Bills','Referred, in committee, report presented or withdrawn')}${box('dAssent','Presidential assent','Endorsed, assented, notified and printed in the Gazette')}</div>
-    <div class="grid g-11 mt">${box('dKind','Bill types','Who introduced the bill')}${box('dAct','Monthly activity','Bills registered, passed and assented in the last 12 months')}</div></div>`;
+    return `<div class="dpanel" data-tab="JS">${db}${sec('01','Bill stage-wise status','Where every Bill is now and how each one ended')}
+    <div class="grid g-3 mt">${box('dStage','Stage-wise status','How many Bills are at each step. Click a bar to see them.','span2')}${box('dOut','House decision & outcome','Passed, deferred, withdrawn or assented')}</div>
+    ${sec('02','Committee on Bills & assent','Joint Sitting Bills in Committee on Bills, by House and by the President’s decision')}<div class="grid g-11 mt">${box('dCoB','Committee on Bills','Referred to the Committee on Bills, report presented or withdrawn')}${box('dAssent','President’s decision','MoPA endorsement, President’s decision, notification and Gazette copy')}</div>
+    <div class="grid g-11 mt">${box('dKind','Official vs Private Members’','Who moved the Bill')}${box('dAct','Monthly trend','Bills registered, passed and assented in the last 12 months')}</div></div>`;
   }
   cHouseProg('dHouse',t,B);const ext=cSC('dSC',t,B);cOtherHouse('dOH',t,B);
-  const third=t==='PMB'?(cA74('dA74',B),box('dA74','Article 74 replies','Has the Ministry replied, and has Cabinet consent come?')):(cAssent('dAssent',t,B),box('dAssent','Presidential assent','Endorsed, assented, notified and printed in the Gazette'));
-  return `<div class="dpanel" data-tab="${t}">${db}${sec('01','Bill status','Where every Bill is now and how each one ended')}
-  <div class="grid g-3 mt">${box('dStage','Bills by stage','How many bills are at each step of the law-making process. Click a bar to see them.','span2')}${box('dOut','Bill outcomes','Pending, passed, deferred, withdrawn or assented')}</div>
-  ${sec('02','Committee and House progress','Deadlines at committee stage and transfer to the other House')}<div class="grid g-3 mt">${box('dSC','Standing Committee deadlines',`Is each bill within its time limit? 30 days (NA), 60 days (Senate)${ext?` · ${plural(ext,'extension')} granted`:''}`)}${box('dOH','Bills in the other House','Is each bill within its 90-day limit?')}${third}</div>
+  const third=t==='PMB'?(cA74('dA74',B),box('dA74','Article 74 compliance','Ministry stance on Article 74, and Federal Government/Cabinet consent')):(cAssent('dAssent',t,B),box('dAssent','President’s decision','MoPA endorsement, President’s decision, notification and Gazette copy'));
+  return `<div class="dpanel" data-tab="${t}">${db}${sec('01','Bill stage-wise status','Where every Bill is now and how each one ended')}
+  <div class="grid g-3 mt">${box('dStage','Stage-wise status','How many Bills are at each step of the law-making process. Click a bar to see them.','span2')}${box('dOut','House decision & outcome','Pending, passed, deferred, withdrawn or assented')}</div>
+  ${sec('02','Committee pendency & inter-House transmission','Standing Committee deadlines and transmission to the Other House')}<div class="grid g-3 mt">${box('dSC','Standing Committee pendency',`Is each bill within its time limit? 30 days (NA), 60 days (Senate)${ext?` · ${plural(ext,'extension')} granted`:''}`)}${box('dOH','Transmitted Bills','Is each Bill within its 90-day limit?')}${third}</div>
   
   ${sec('04','House comparison &amp; monthly trend','Progress by House of origin and monthly movement of Bills')}
-  ${(()=>{const r4=t==='PMB'?(cAssent('dAssent',t,B),box('dAssent','Presidential assent','Endorsed, assented, notified and printed in the Gazette')):(mins?box('dAct','Monthly activity','Bills registered, passed and assented in the last 12 months'):'');
-    return `<div class="grid g-11 mt">${box('dHouse','NA vs Senate','Where bills from each House have reached')}${r4}</div>${t==='PMB'&&mins?`<div class="grid mt">${box('dAct','Monthly activity','Bills registered, passed and assented in the last 12 months')}</div>`:''}`})()}
+  ${(()=>{const r4=t==='PMB'?(cAssent('dAssent',t,B),box('dAssent','President’s decision','MoPA endorsement, President’s decision, notification and Gazette copy')):(mins?box('dAct','Monthly trend','Bills registered, passed and assented in the last 12 months'):'');
+    return `<div class="grid g-11 mt">${box('dHouse','House of origin','Where Bills from each House of origin have reached')}${r4}</div>${t==='PMB'&&mins?`<div class="grid mt">${box('dAct','Monthly trend','Bills registered, passed and assented in the last 12 months')}</div>`:''}`})()}
   ${o.extra||''}
   </div>`;
 }
@@ -2584,9 +2584,9 @@ function dashMinistry(){
   donut('chMinResp',['Replies sent','Replies due'],[sent,due.length],['#2563eb','#f43f5e'],'Replies',260);
   const bk=BUCKETS.filter(x=>B.some(b=>bucket(b)===x));donut('chMinMix',bk,bk.map(x=>B.filter(b=>bucket(b)===x).length),null,'Bills',260);
   const F=B.map(flagOf),n=f=>F.filter(x=>x.t===f).length;
-  const extra=`${sec('05','Your Ministry at a glance','Replies to MoPA and the stage of your Ministry’s bills')}
+  const extra=`${sec('05','Your Ministry/Division at a glance','Replies to MoPA and the stage of your Ministry’s Bills')}
   <div class="flags fade-up"><div class="fl r"><i class="ri-alarm-warning-line"></i><div><b>${n('r')}</b><span>Red — overdue / escalated</span></div></div><div class="fl y"><i class="ri-timer-line"></i><div><b>${n('y')}</b><span>Yellow — reminder, reply due</span></div></div><div class="fl g"><i class="ri-checkbox-circle-line"></i><div><b>${n('g')}</b><span>Green — on track / actioned</span></div></div></div>
-  <div class="grid g-11 mt">${box('chMinResp','Replies','Replies sent to MoPA, and replies still due')}${box('chMinMix','Your bills by stage','How many of your Ministry’s bills are at each step')}</div>`;
+  <div class="grid g-11 mt">${box('chMinResp','Ministry responses','Ministry responses sent to MoPA, and responses still due')}${box('chMinMix','Your Bills by stage','How many of your Ministry’s Bills are at each step')}</div>`;
   return `
   
   ${dashFilters()}
@@ -2599,8 +2599,8 @@ function dashLaw(){
   chart('chLaw',{chart:{type:'radialBar',height:270},series:[B.length?Math.round(done/B.length*100):0],labels:['Cleared'],colors:['#059669']});
   const c=x=>B.filter(b=>b.type===x);
   chart('chLawT',{chart:{type:'bar',height:270,stacked:true},series:[{name:'Cleared',data:['OB','PMB','JS'].map(x=>c(x).filter(b=>b.lawCleared).length)},{name:'Pending',data:['OB','PMB','JS'].map(x=>c(x).filter(b=>!b.lawCleared).length)}],xaxis:{categories:['Official Bills','Non-Official Bills','Joint Sitting']},colors:['#059669','#f59e0b'],legend:{position:'top'}});
-  const extra=`${sec('05','Legal check','Whether Law & Justice has cleared each bill, and what is still waiting')}
-  <div class="grid g-12 mt">${box('chLaw','Legal check','Share of bills cleared by Law & Justice')}${box('chLawT','Legal check by type','Cleared vs still waiting')}</div>`;
+  const extra=`${sec('05','Law & Justice clearance','Whether Law & Justice has cleared each Bill, and what is still waiting')}
+  <div class="grid g-12 mt">${box('chLaw','Law & Justice clearance','Share of Bills cleared by Law & Justice')}${box('chLawT','Clearance by Bill type','Cleared vs still waiting')}</div>`;
   return `
   
   ${dashFilters()}
@@ -2679,7 +2679,7 @@ function overviewTab(b){
    <div class="ov-k"><small>Secretary approval</small><b>${b.approvals.length?'<span class="ok-t">Approved '+fmt(b.approvals[b.approvals.length-1].date)+'</span>':'Not yet'}</b></div>
    ${b.type==='PMB'?`<div class="ov-k"><small>Ministry stance · Cabinet consent</small><b>${b.art74?(b.art74==='Yes'?'Applies':'Does not apply'):'<span class="warn-t">Awaited</span>'} · ${esc(b.consent||'—')}</b></div>`:''}
    <div class="ov-k"><small>Rulings &amp; Committee records</small><b>${b.rulings.length?esc(b.rulings[b.rulings.length-1].kind)+(b.rulings[b.rulings.length-1].status?' · '+esc(b.rulings[b.rulings.length-1].status):''):'None recorded'}</b></div>
-   <div class="ov-k"><small>Aging</small><b>${d&&d.aging?`<span style="color:#e11d48">${plural(d.aging,'day')} past limit</span>`:'0 days'}</b></div>
+   <div class="ov-k"><small>Ageing</small><b>${d&&d.aging?`<span style="color:#e11d48">${plural(d.aging,'day')} past limit</span>`:'0 days'}</b></div>
   </div>
   <div class="tbl-wrap" style="margin-top:16px"><table class="ov-t"><thead><tr><th></th><th>Stage</th><th>Status</th><th>Date</th><th>Reference / source</th><th>Entered by</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
