@@ -2596,7 +2596,49 @@ function cAssent(id,t,B){const w=dfCount(B,'Assent','MoPA Endorsement for Assent
   donut(id,['Waiting for signature','Assented'],[w,a],['#6366f1','#059669'],'Bills',H_SM-30)}
 function cActivity(id,B){const t=trendData(B);
   chart(id,{chart:{type:'area',height:230},series:[{name:'Registered',data:t.reg},{name:'Passed',data:t.passed},{name:'Assented',data:t.enacted}],xaxis:{categories:t.labels,tickAmount:6,labels:{rotate:0,trim:false}},colors:['#2563eb','#14b8a6','#059669'],stroke:{curve:'smooth',width:3},legend:{position:'top'},markers:{size:0,hover:{size:6}}})}
+/* Time chart (30 Oct 2026): days spent at the four milestones MoPA tracks */
+const TIME_MS=[
+ {l:'Referred to committee',s:'Standing Committee'},
+ {l:'Bill transmitted to other House',s:'Transmitted'},
+ {l:'First House to second House',s:'Other House'},
+ {l:'Since introduction',s:'Introduced'}];
+function timeSince(b,stage){const h=(b.history||[]).find(x=>x.stage===stage);return h?Math.max(0,Math.round((TODAY-h.date)/DAY)):null}
+/* Bill-wise counter (30 Oct 2026): one row per Bill with the days it has spent at its stage */
+function cBillCounter(id,B){
+  const rows=B.slice().sort((a,c)=>ageing(c)-ageing(a));
+  /* draw after the panel is in the document */
+  setTimeout(()=>{const holder=document.getElementById(id);if(!holder)return;
+  holder.innerHTML=`<div class="tbl-wrap" style="max-height:420px;overflow:auto"><table><thead><tr><th>Bill</th><th>Category</th><th>House</th><th>Stage</th><th class="r">Days at stage</th><th class="r">Deadline</th></tr></thead><tbody>${rows.map(b=>{const d=deadline(b);return `<tr class="click" onclick="openBill('${b.id}')"><td><b>${esc(b.title.length>52?b.title.slice(0,52)+'…':b.title)}</b><small>${b.id}</small></td><td>${CAT_NAME[catOf(b)]}</td><td>${esc(HOUSE_NAME[b.house]||b.house)}</td><td>${stagePill(b)}</td><td class="r"><b>${ageing(b)}</b></td><td class="r">${d?`<span class="pill flag-${d.state==='overdue'?'r':d.state==='soon'?'y':'g'}">${d.left<0?Math.abs(d.left)+' days over':d.left+' days left'}</span>`:'<span class="muted">—</span>'}</td></tr>`}).join('')}</tbody></table></div>`;},0);
+}
+function cTimeChart(id,B){
+  const rows=TIME_MS.map(m=>{const ds=B.map(b=>timeSince(b,m.s)).filter(v=>v!==null);
+    return {l:m.l,avg:ds.length?Math.round(ds.reduce((a,c)=>a+c,0)/ds.length):0,n:ds.length,min:ds.length?Math.min(...ds):0,max:ds.length?Math.max(...ds):0}});
+  chart(id,{chart:{type:'bar',height:H_MD},series:[{name:'Average days',data:rows.map(r=>r.avg)}],
+    xaxis:{categories:rows.map(r=>r.l),labels:{rotate:MOB()?0:-20,trim:false,style:{fontSize:'11px'},maxHeight:80}},
+    plotOptions:{bar:{distributed:true,columnWidth:'48%'}},colors:['#059669','#2563eb','#0d9488','#6366f1'],
+    dataLabels:{enabled:true,formatter:v=>v+' d'},legend:{show:false},
+    tooltip:{y:{formatter:v=>v+' days average'}}});
+}
+
 /* Session-wise breakdown (meeting 30 Oct 2026): how much business sits in each session */
+/* Session-wise activity (30 Oct 2026): Bills, introduced, reports presented, passed and notified per session */
+function cSessionAct(id,B){
+  const ses=SESSIONS.map(([sid])=>B.filter(b=>billSessions(b).includes(sid)));
+  const intro=b=>b.si>=Math.max(0,stagesOf(b).indexOf('Introduced'));
+  const rep_=b=>b.si>=Math.max(0,stagesOf(b).indexOf('Report Presented'));
+  const pass=b=>/Passed|Transmitted|Other House|Assent Proceed|Assented|Notified/.test(stageName(b))||b.status==='Deferred';
+  const notif=b=>/Notified/.test(stageName(b));
+  const rows=[
+    {name:'Bills',data:ses.map(r=>r.length),c:'#94a3b8'},
+    {name:'Introduced',data:ses.map(r=>r.filter(intro).length),c:'#059669'},
+    {name:'Reports presented',data:ses.map(r=>r.filter(rep_).length),c:'#0d9488'},
+    {name:'Bills passed',data:ses.map(r=>r.filter(pass).length),c:'#2563eb'},
+    {name:'Act / Notification',data:ses.map(r=>r.filter(notif).length),c:'#6366f1'}];
+  chart(id,{chart:{type:'bar',height:H_MD,stacked:false},series:rows.map(r=>({name:r.name,data:r.data})),
+    xaxis:{categories:SESSIONS.map(([sid])=>sid),labels:{rotate:0,trim:false}},
+    colors:rows.map(r=>r.c),plotOptions:{bar:{columnWidth:'58%',borderRadius:4}},legend:{position:'top'},
+    dataLabels:{enabled:true,style:{fontSize:'10px'}}});
+}
 function cSession(id,B){
   const rows=SESSIONS.map(([sid,name])=>B.filter(b=>billSessions(b).includes(sid)));
   chart(id,{chart:{type:'bar',height:H_MD,stacked:true},series:[{name:'Official Bills',data:rows.map(r=>r.filter(b=>b.type==='OB').length)},{name:'Non-Official Bills',data:rows.map(r=>r.filter(b=>b.type==='PMB').length)},{name:'Joint Sitting',data:rows.map(r=>r.filter(b=>b.type==='JS').length)}],
@@ -2692,7 +2734,7 @@ function dashPanel(t,B0,o={}){
   const name=DTABS.find(x=>x[0]===t)[1],B=applyDrill(B0);DRILL_IDS=B.map(b=>b.id);const db=drillBar(t,B.length);
   if(!B0.length)return `<div class="card">${empty(`No ${name} in this view`,o.emptyMsg||'Nothing has been recorded under this workflow yet.',DTABS.find(x=>x[0]===t)[2])}</div>`;
   if(!B.length)return db+`<div class="card">${empty('Nothing matches this drill-through','Remove a filter chip above to widen the view.','ri-filter-off-line')}</div>`;
-  cStaging('dStage',B);cOutcome('dOut',B,t);cActivity('dAct',B);cSession('dSess',B);
+  cStaging('dStage',B);cOutcome('dOut',B,t);cSessionAct('dSess',B);cTimeChart('dTime',B);cBillCounter('dBillCount',B);
   const mins=o.ministries!==false;
   const stats=`<div class="grid g-stats s-compact">${tabStats(t,B).join('')}</div>`;
   const minCard=mins?box('dMin','Ministry/Division-wise','Top 10 Ministries / Divisions by number of Bills · click a bar to drill','span2'):box('dAct','Monthly trend','Bills registered, passed and assented in the last 12 months','span2');
@@ -2710,10 +2752,11 @@ function dashPanel(t,B0,o={}){
   ${sec('02','Committee pendency & inter-House transmission','Standing Committee deadlines and transmission to the Other House')}<div class="grid g-3 mt">${box('dSC','Standing Committee pendency',`Is each bill within its time limit? 30 days (NA), 60 days (Senate)${ext?` · ${plural(ext,'extension')} granted`:''}`)}${box('dOH','Transmitted Bills','Is each Bill within its 90-day limit?')}${third}</div>
   
   ${sec('03','Session-wise progress','Bills in each session, and the decisions taken in it')}
-  <div class="grid mt">${box('dSess','Bills by session','Click a session to filter every chart',`span2`)}</div>
-  ${sec('04','House comparison &amp; monthly trend','Progress by House of origin and monthly movement of Bills')}
-  ${(()=>{const r4=t==='PMB'?(cAssent('dAssent',t,B),box('dAssent','President’s decision','MoPA endorsement, President’s decision, notification and Gazette copy')):(mins?box('dAct','Monthly trend','Bills registered, passed and assented in the last 12 months'):'');
-    return `<div class="grid g-11 mt">${box('dHouse','House of origin','Where Bills from each House of origin have reached')}${r4}</div>${t==='PMB'&&mins?`<div class="grid mt">${box('dAct','Monthly trend','Bills registered, passed and assented in the last 12 months')}</div>`:''}`})()}
+  <div class="grid g-11 mt">${box('dSess','Session-wise activity','Bills, introduced, reports presented, passed and notified in each session')}${box('dTime','Time chart','Average days since each milestone')}</div>
+  ${sec('04','House comparison &amp; bill-wise counter','Progress by House of origin, and a counter for every Bill')}
+  ${(()=>{const r4=t==='PMB'?(cAssent('dAssent',t,B),box('dAssent','President’s decision','MoPA endorsement, President’s decision, notification and Gazette copy')):'';
+    return `<div class="grid ${r4?'g-11':''} mt">${box('dHouse','House of origin','Where Bills from each House of origin have reached')}${r4}</div>`})()}
+  ${box('dBillCount','Bill-wise counter','Every Bill and the days it has spent at its current stage. Search or sort to find one.','mt')}
   ${o.extra||''}
   </div>`;
 }
