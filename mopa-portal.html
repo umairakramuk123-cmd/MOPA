@@ -1413,9 +1413,9 @@ function ago(d){const x=Math.max(0,Math.round((TODAY-new Date(d))/6e4));const no
 
 /* ---------------- Workflows (BRD §8 Separate Workflows) ---------------- */
 const STAGES={
-  OB:['Pre-Introduction','In Agenda (OD)','Introduced','Standing Committee','Report Presented','Passed by House','Transmitted','Other House','Assent Pending','Assented','Notified'],
-  PMB:['Pre-Admissibility','Admitted','In Agenda (OD)','Introduced','Standing Committee','Report Presented','Passed by House','Transmitted','Other House','Assent Pending','Assented','Notified'],
-  JS:['Referred to Joint Sitting','In Agenda (OD)','Committee on Bills','Report Presented','Passed in Joint Sitting','Assent Pending','Assented','Notified']
+  OB:['Pre-Introduction','In Agenda (OD)','Introduced','Standing Committee','Report Presented','Passed by House','Transmitted','Other House','Assent Proceed','Assented','Notified'],
+  PMB:['Pre-Admissibility','Admitted','In Agenda (OD)','Introduced','Standing Committee','Report Presented','Passed by House','Transmitted','Other House','Assent Proceed','Assented','Notified'],
+  JS:['Referred to Joint Sitting','In Agenda (OD)','Committee on Bills','Report Presented','Passed in Joint Sitting','Assent Proceed','Assented','Notified']
 };
 const TYPE_NAME={OB:'Official Bill',PMB:'Non-Official Bill',JS:'Joint Sitting'};
 const TYPE_SHORT={OB:'Official',PMB:'Non-Official',JS:'Joint Sitting'};
@@ -1437,7 +1437,7 @@ const RAW=[
 ['OB','The Electricity Regulation (Amendment) Bill, 2026','NA','Energy (Power Division)','Notified',15,'Assented'],
 ['OB','The Maritime Zones (Amendment) Bill, 2026','Senate','Maritime Affairs','Pre-Introduction',4,'Active'],
 ['OB','The Digital Media Regulatory Authority Bill, 2026','NA','Information & Broadcasting','Standing Committee',24,'Active'],
-['OB','The Legal Practitioners (Amendment) Bill, 2026','Senate','Law & Justice','Assent Pending',7,'Active'],
+['OB','The Legal Practitioners (Amendment) Bill, 2026','Senate','Law & Justice','Assent Proceed',7,'Active'],
 ['OB','The Customs (Amendment) Bill, 2026','NA','Finance & Revenue','Pre-Introduction',2,'Active'],
 ['OB','The Anti-Money Laundering (Amendment) Bill, 2026','Senate','Interior & Narcotics Control','Introduced',10,'Deferred'],
 ['OB','The E-Commerce Facilitation Bill, 2026','NA','Commerce','Passed by House',5,'Active'],
@@ -1454,7 +1454,7 @@ const RAW=[
 ['PMB','The Tenancy Rights Bill, 2026','Senate','Law & Justice','Notified',40,'Assented','Mr. Imran Sheikh, Senator','No','N/A'],
 ['JS','The National Disaster Management (Amendment) Bill, 2026','Joint','Climate Change & Env. Coordination','Committee on Bills',21,'Active','Minister-in-Charge'],
 ['JS','The Ports Authority (Amendment) Bill, 2026','Joint','Maritime Affairs','In Agenda (OD)',4,'Active','Minister-in-Charge'],
-['JS','The Higher Education Commission (Amendment) Bill, 2026','Joint','Federal Education & Prof. Training','Assent Pending',10,'Active','Minister-in-Charge'],
+['JS','The Higher Education Commission (Amendment) Bill, 2026','Joint','Federal Education & Prof. Training','Assent Proceed',10,'Active','Minister-in-Charge'],
 ];
 
 /* More sample Bills so every Federal Ministry / Division appears on the dashboard */
@@ -1623,7 +1623,7 @@ function outcome(b){
 function bucket(b){
   const s=stageName(b);
   if(/Assented|Notified/.test(s))return 'Enacted';
-  if(/Assent Pending/.test(s))return 'Assent';
+  if(/Assent Proceed/.test(s))return 'Assent';
   if(b.type==='JS')return 'Joint Sitting';
   if(/Pre-|Admitted/.test(s))return 'Pre-Intro';
   if(/Agenda/.test(s))return 'Agenda';
@@ -1687,12 +1687,12 @@ const LEGAL_REF=[
 /* ---------------- Documents (BRD §8 Document Repository) ---------------- */
 const canRestricted=()=>['admin','dm','sec'].includes(state.role);
 const dlBtn=d=>d.restricted&&!canRestricted()?'<span class="pill p-slate" title="Access to this document is limited by role"><i class="ri-lock-line"></i>Restricted</span>':`<button class="icon-btn" title="Download" onclick="toast(\'Downloading ${esc(d.name)}\',\'ri-download-2-line\')"><i class="ri-download-2-line"></i></button>`;
-const DOC_SLOTS=[['Copy of the Bill',null,'ri-file-text-line'],['Statement of Objects and Reasons',null,'ri-file-list-3-line'],['Order of the Day','In Agenda (OD)','ri-calendar-check-line'],['Ministry Response','Pre-Admissibility','ri-chat-check-line'],['Ministry Proforma','Pre-Admissibility','ri-edit-2-line'],['Transmission Notice','Transmitted','ri-mail-send-line'],['Committee Report','Report Presented','ri-file-chart-line'],['Committee Amendments','Report Presented','ri-edit-2-line'],['Transmitted Bill Copy','Transmitted','ri-send-plane-2-line'],['Presidential Message','Assent Pending','ri-quill-pen-line'],['Gazette Notification','Notified','ri-government-line']];
+const DOC_SLOTS=[['Copy of the Bill',null,'ri-file-text-line'],['Statement of Objects and Reasons',null,'ri-file-list-3-line'],['Order of the Day','In Agenda (OD)','ri-calendar-check-line'],['Ministry Response','Pre-Admissibility','ri-chat-check-line'],['Ministry Proforma','Pre-Admissibility','ri-edit-2-line'],['Transmission Notice','Transmitted','ri-mail-send-line'],['Committee Report','Report Presented','ri-file-chart-line'],['Committee Amendments','Report Presented','ri-edit-2-line'],['Transmitted Bill Copy','Transmitted','ri-send-plane-2-line'],['Presidential Message','Assent Proceed','ri-quill-pen-line'],['Gazette Notification','Notified','ri-government-line']];
 function docsFor(b){
   const out=[];
   DOC_SLOTS.forEach(([name,st,ic],k)=>{
     if((name==='Ministry Response'||name==='Ministry Proforma')&&b.type!=='PMB')return;
-    if(name==='Presidential Message'&&!(b.status==='Assented'||stageName(b)==='Assent Pending'))return;
+    if(name==='Presidential Message'&&!(b.status==='Assented'||stageName(b)==='Assent Proceed'))return;
     const idx=st?sIdx(b,st):0;
     if(idx<0||b.si<idx)return;
     const missing=(name==='Order of the Day'&&b.n%4===1)||(name==='Committee Report'&&b.n%5===2)||(name==='Ministry Response'&&!b.art74);
@@ -1765,7 +1765,7 @@ function stageAlert(b,s){const H=HOUSE_NAME[b.house];const m={
  'Other House':['milestone','Bill received in the other House',7],
  'Referred to Joint Sitting':['milestone','Bill referred to Joint Sitting',9],
  'Admitted':['response','Non-Official Bill admitted — Form-A submission required after introduction',11],
- 'Assent Pending':['milestone','MoPA endorsement sent for Presidential assent',12],
+ 'Assent Proceed':['milestone','MoPA endorsement sent for Presidential assent',12],
  'Assented':['presidential','Presidential decision recorded: Assented',12],
  'Notified':['gazette','Gazette notification of the assented Act received',13]}[s];
  resolveAlerts(b.id,'deadline');if(s==='Admitted'||s==='Introduced')resolveAlerts(b.id,'legal');
@@ -1988,11 +1988,11 @@ function trendData(B){
 /* ---------------- Shared UI pieces ---------------- */
 function kpis(B){
   const f=p=>B.filter(p).length;
-  return {total:B.length,ob:f(b=>b.type==='OB'),pmb:f(b=>b.type==='PMB'),js:f(b=>b.type==='JS'),
+  return {total:B.length,ob:f(b=>catOf(b)==='OB'),pmb:f(b=>catOf(b)==='PMB'),js:f(b=>b.house==='Joint'),
     na:f(b=>b.house==='NA'),sen:f(b=>b.house==='Senate'),joint:f(b=>b.house==='Joint'),
     sc:f(b=>/Standing Committee|Committee on Bills/.test(stageName(b))),
     overdue:f(b=>deadline(b)?.state==='overdue'),soon:f(b=>deadline(b)?.state==='soon'),
-    enacted:f(b=>/Assented|Notified/.test(stageName(b))),assent:f(b=>stageName(b)==='Assent Pending'),
+    enacted:f(b=>/Assented|Notified/.test(stageName(b))),assent:f(b=>stageName(b)==='Assent Proceed'),
     stance:f(b=>b.type==='PMB'&&!b.art74),transit:f(b=>/Transmitted|Other House/.test(stageName(b))),
     law:f(b=>!b.lawCleared),active:f(b=>b.status==='Active'),resp:f(responseDue)};
 }
@@ -2058,7 +2058,7 @@ OB:[
  ['Decision of Other House','Other House',['Bill Passed|DA','Bill Deferred|D?','Bill Withdrawn|DA?']],
  ['Referral to Originating House','Other House',['Bill Passed with Amendments|DA?']],
  ['Referral to Joint Sitting','Other House',['Referred Back after 90 Days|D?','Amended Bill Not Passed by Originating House|YN?','Bill Referred to Joint Sitting|D?']],
- ['Assent','Assent Pending',['MoPA Endorsement for Assent|D']],
+ ['Assent','Assent Proceed',['MoPA Endorsement for Assent|D']],
  ["President's Decision",'Assented',['Assented by the President|D','Returned by President with Message|D?']],
  ['Notification','Notified',['Notification Received by MoPA|D','Gazette Copy of Notified Act|F']],
 ],
@@ -2082,7 +2082,7 @@ PMB:[
  ['Decision of Other House','Other House',['Bill Passed|DA','Bill Deferred|D?','Bill Withdrawn|DA?']],
  ['Referral to Originating House','Other House',['Amended Bill Not Passed by Originating House|YN?','Bill Referred to Joint Sitting|D?']],
  ['Referral to Joint Sitting','Other House',['Transmitted Back after 90 Days|D?']],
- ['Assent','Assent Pending',['MoPA Endorsement for Assent|D']],
+ ['Assent','Assent Proceed',['MoPA Endorsement for Assent|D']],
  ["President's Decision",'Assented',['Assented by the President|D','Returned by President with Message|D?']],
  ['Notification','Notified',['Notification Received by MoPA|D','Gazette Copy of Notified Act|F']],
 ],
@@ -2095,7 +2095,7 @@ JS:[
  ['Report Presented','Report Presented',['Inclusion of Report on OD|DA','Report Presented in Joint Sitting|D']],
  ['Ready for Consideration/Passage','Report Presented',['Inclusion of Bill in OD|D','Copy of OD|DA']],
  ['Decision of Joint Sitting','Passed in Joint Sitting',['Bill Passed|DA','Bill Deferred|D?','Bill Withdrawn|DA?']],
- ['Assent','Assent Pending',['MoPA Endorsement for Assent|D']],
+ ['Assent','Assent Proceed',['MoPA Endorsement for Assent|D']],
  ["President's Decision",'Assented',['Assented by the President|D']],
  ['Notification','Notified',['Notification by NA Secretariat|D','Gazette Copy of the Act|F']],
 ]};
@@ -2135,7 +2135,7 @@ function queueTable(Q,n){
 }
 
 function pipelineChart(id,B){
-  const c=t=>BUCKETS.map(x=>B.filter(b=>b.type===t&&bucket(b)===x).length);
+  const c=t=>BUCKETS.map(x=>B.filter(b=>catOf(b)===t&&bucket(b)===x).length);
   chart(id,{chart:{type:'bar',height:300,stacked:true},series:[{name:'Official',data:c('OB')},{name:'Non-Official',data:c('PMB')},{name:'Joint Sitting',data:c('JS')}],colors:['#059669','#2563eb','#6366f1'],
     plotOptions:{bar:{borderRadius:6,columnWidth:'52%',borderRadiusApplication:'end',borderRadiusWhenStacked:'last'}},xaxis:{categories:BUCKETS},yaxis:{forceNiceScale:true,labels:{formatter:v=>Math.round(v)}},legend:{position:'top',horizontalAlign:'right'}});
 }
@@ -2179,14 +2179,14 @@ function setX(k,v){state.x[k]=v;render()}
 const pct2=B=>B.length?Math.round(B.reduce((a,b)=>a+pct(b),0)/B.length):0;
 /* ---------- Bill Management list ---------- */
 PAGES.bills=()=>{
-  const V=visibleBills(),c=t=>t==='ALL'?V.length:V.filter(b=>b.type===t).length;
+  const V=visibleBills(),c=t=>t==='ALL'?V.length:V.filter(b=>catOf(b)===t).length;
   return `
   <div class="ph"><div><span class="eyebrow">Phase-I · Legislation</span><h1>${navLabel('bills')}</h1><p>${state.role==='min'?'Bills MoPA has shared with your Ministry. Open a Bill to see its stage history and send your reply.':'Every registered Bill with its current stage and time at that stage. Open a Bill for its full record.'}</p></div>
   <div class="ph-actions">${can('export')?`<button class="btn" onclick="exportBills()"><i class="ri-file-excel-2-line"></i>Export to Excel</button>`:''}${can('create')?`<button class="btn btn-primary" onclick="openRegister()"><i class="ri-add-line"></i>Register New Bill</button>`:''}${ROLE().readonly?'<span class="pill p-blue"><i class="ri-lock-line"></i>View only</span>':''}</div></div>
   ${state.f.ids?`<div class="drillbar fade-up"><span class="db-l"><i class="ri-dashboard-3-line"></i>From the dashboard</span><button class="dchip" onclick="state.f.ids=null;state.pg=1;render()" title="Show all Bills">${esc(state.f.idsLabel)} · ${plural(state.f.ids.length,'Bill')}<i class="ri-close-line"></i></button><button class="link-btn" onclick="state.f.ids=null;go('dashboard')"><i class="ri-arrow-left-line"></i>Back to dashboard</button></div>`:''}
   <div class="card flush fade-up">
     <div class="toolbar">
-      <div class="seg">${['ALL','OB','PMB','JS'].map(t=>`<button class="${state.tab===t?'on':''}" onclick="setTab('${t}')">${t==='ALL'?'All':t==='OB'?'Official Bills':t==='PMB'?'Non-Official Bills':'Joint Sitting'} <em>${c(t)}</em></button>`).join('')}</div>
+      <div class="seg">${['ALL','OB','PMB'].map(t=>`<button class="${state.tab===t?'on':''}" onclick="setTab('${t}')">${t==='ALL'?'All':t==='OB'?'Official Bills':t==='PMB'?'Non-Official Bills':'Joint Sitting'} <em>${c(t)}</em></button>`).join('')}</div>
       <div class="filters">
         <div class="f-search"><i class="ri-search-line"></i><input class="input" placeholder="Title, Bill ID or Member" value="${esc(state.f.q)}" oninput="setF('q',this.value)"></div>
         ${state.role!=='min'?`<select class="input" onchange="setF('ministry',this.value)"><option value="">All Ministries</option>${MINISTRIES.map(m=>`<option ${state.f.ministry===m?'selected':''}>${m}</option>`).join('')}</select>`:''}
@@ -2201,7 +2201,7 @@ PAGES.bills=()=>{
 };
 function filteredBills(){
   const q=state.f.q.trim().toLowerCase();
-  return visibleBills().filter(b=>(!state.f.ids||state.f.ids.includes(b.id))&&(state.tab==='ALL'||b.type===state.tab)&&(!q||(b.title+b.id+b.member+b.ministry).toLowerCase().includes(q))&&(!state.f.ministry||b.ministry===state.f.ministry)&&(!state.f.house||b.house===state.f.house)&&(!state.f.status||(state.f.status==='Overdue'?deadline(b)?.state==='overdue':b.status===state.f.status))&&(!state.f.ruling||b.rulings.some(r=>state.f.ruling.startsWith('Committee report')?/report/i.test(r.kind)&&state.f.ruling.endsWith(r.status||'Pending'):r.kind.startsWith(state.f.ruling))));
+  return visibleBills().filter(b=>(!state.f.ids||state.f.ids.includes(b.id))&&(state.tab==='ALL'||catOf(b)===state.tab)&&(!q||(b.title+b.id+b.member+b.ministry).toLowerCase().includes(q))&&(!state.f.ministry||b.ministry===state.f.ministry)&&(!state.f.house||b.house===state.f.house)&&(!state.f.status||(state.f.status==='Overdue'?deadline(b)?.state==='overdue':b.status===state.f.status))&&(!state.f.ruling||b.rulings.some(r=>state.f.ruling.startsWith('Committee report')?/report/i.test(r.kind)&&state.f.ruling.endsWith(r.status||'Pending'):r.kind.startsWith(state.f.ruling))));
 }
 function renderBillTable(){
   const L=filteredBills(),per=10,pages=Math.max(1,Math.ceil(L.length/per));
@@ -2342,7 +2342,7 @@ const REPORTS=[
  {n:8,t:'Inter-House Transmission and 90-Day Tracking Report',ic:'ri-send-plane-2-line',d:'Transmission date, receipt in other House, days elapsed, Bills referred back after 90 days and Joint Sitting referral.',cols:['Bill ID','Title','Transmission Date','Receipt in Other House','Days Elapsed','Referred Back after 90 Days','Joint Sitting Referral'],rows:B=>B.filter(b=>{const k=sIdx(b,'Transmitted');return k>=0&&b.si>=k}).map(b=>{const d=deadline(b);return [b.id,b.title,reached(b,'Transmitted'),reached(b,'Other House')||'—',d?d.el:'—',d&&d.left<0?'Yes':'No',d&&d.left<0?'Due':'—']}),pie:5},
  {n:9,t:'Joint Sitting and Committee on Bills Report',ic:'ri-group-line',d:'Bills referred to Joint Sitting, OD issuance, Committee on Bills meetings, report presentation and decisions.',cols:['Bill ID','Title','Referred to Joint Sitting','OD Issuance','Committee on Bills Meetings','Report Presented','Joint Sitting Decision'],rows:B=>B.filter(b=>b.type==='JS').map(b=>[b.id,b.title,fmt(b.reg),sheetDate(b,/Issuance of OD/)||'—',sheetDate(b,/Date\(s\) of Meetings/)||'—',sheetDate(b,/Report Presented in Joint/)||'—',outcome(b)]),pie:6},
  {n:10,t:"Non-Official Bills and Article 74 Compliance",ic:'ri-file-shield-2-line',d:'Ministry stance on Article 74, Federal Government/Cabinet consent and post-introduction stance.',cols:['Bill ID','Title','Ministry','Stance on Article 74','Cabinet Consent','Post-Introduction Stance'],rows:B=>B.filter(b=>b.type==='PMB').map(b=>[b.id,b.title,b.ministry,b.art74==='Yes'?'Applies':b.art74==='No'?'Does not apply':'Awaited',b.consent||'—',b.si>=sIdx(b,'Introduced')&&b.responses.length?'Recorded':'—']),pie:3},
- {n:11,t:'Presidential Assent and Gazette Notification',ic:'ri-quill-pen-line',d:'MoPA endorsement, Presidential decision, Bills returned with message, notification date and Gazette copy.',cols:['Bill ID','Title','MoPA Endorsement','Presidential Decision','Returned with Message','Notification Received','Gazette Copy'],rows:B=>B.filter(b=>b.si>=sIdx(b,'Assent Pending')).map(b=>{const ret=sheetDate(b,/Returned by President/);return [b.id,b.title,sheetDate(b,/MoPA Endorsement/)||reached(b,'Assent Pending'),reached(b,'Assented')?'Assented':ret?'Returned':'Awaited',ret?'Yes · '+ret:'No',sheetDate(b,/Notification Received|Notification by NA/)||reached(b,'Notified')||'—',reached(b,'Notified')?(docsFor(b).some(d=>d.name==='Gazette Notification'&&!d.missing)?'On file':'Missing'):'—']}),pie:3},
+ {n:11,t:'Presidential Assent and Gazette Notification',ic:'ri-quill-pen-line',d:'MoPA endorsement, Presidential decision, Bills returned with message, notification date and Gazette copy.',cols:['Bill ID','Title','MoPA Endorsement','Presidential Decision','Returned with Message','Notification Received','Gazette Copy'],rows:B=>B.filter(b=>b.si>=sIdx(b,'Assent Proceed')).map(b=>{const ret=sheetDate(b,/Returned by President/);return [b.id,b.title,sheetDate(b,/MoPA Endorsement/)||reached(b,'Assent Proceed'),reached(b,'Assented')?'Assented':ret?'Returned':'Awaited',ret?'Yes · '+ret:'No',sheetDate(b,/Notification Received|Notification by NA/)||reached(b,'Notified')||'—',reached(b,'Notified')?(docsFor(b).some(d=>d.name==='Gazette Notification'&&!d.missing)?'On file':'Missing'):'—']}),pie:3},
  {n:12,t:'Bill Ageing and Delay Report',ic:'ri-hourglass-line',d:'Bills pending at each stage, delay at Standing Committee, elapsed days and Bills needing follow-up.',cols:['Bill ID','Title','Pending at Stage','Elapsed Days','Ageing Band','Delay at Committee','Next Action Date','Follow-up'],rows:B=>B.filter(b=>b.status==='Active'&&!/Assented|Notified/.test(stageName(b))).map(b=>{const d=deadline(b);return [b.id,b.title,stageName(b),ageing(b),band(ageing(b)),d&&d.short==='Committee'&&d.left<0?(-d.left)+' days':'—',b.next?fmt(b.next.date):'Not set',d&&d.state==='overdue'?'Required — overdue':!b.next?'Required — no next-action date':d&&d.state==='soon'?'Required — due soon':'Not needed']}),pie:7},
  {n:13,t:'Alerts and Notifications Report',ic:'ri-notification-badge-line',d:'Milestone, Ministry response, Committee deadline, 90-day, Presidential and Gazette alerts.',cols:['Alert','Category','Bill','Raised','Status'],rows:()=>visibleAlerts().map(a=>[a.title,a.type==='deadline'?(/90-day/.test(a.title)?'90-day limit alert':'Committee deadline alert'):{milestone:'Milestone alert',legal:'Milestone alert',response:'Ministry response due',presidential:'Presidential decision alert',gazette:'Gazette notification alert'}[a.type],a.bill,fmt(a.time),a.resolved?'Resolved':['deadline','response','legal'].includes(a.type)?'Open':a.read?'Read':'Unread']),pie:1,noFilter:true},
  {n:14,t:'Document Repository and Missing Documents',ic:'ri-folder-warning-line',d:'Bill copies, ODs, Ministry responses, Committee reports, transmitted copies, Presidential messages and Gazette notifications.',cols:['Bill ID','Document','Stage','Status','Size'],rows:B=>B.flatMap(docsFor).map(d=>[d.bill,d.name,d.stage,d.missing?'Missing':'Uploaded',d.missing?'—':d.size]),pie:3},
@@ -2510,7 +2510,11 @@ PAGES.help=()=>{const t=state.helpT,S=DF[t];
    Official Bills · Non-Official Bills · Joint Sitting
    Every chart reads the Bill data fields (BRD §9) through getV().
 ========================================================= */
-const DTABS=[['OB','Official Bills','ri-government-line','var(--grad-green)'],['PMB','Non-Official Bills','ri-user-star-line','var(--grad-blue)'],['JS','Joint Sitting','ri-group-line','var(--grad-indigo)']];
+const DTABS=[['OB','Official Bills','ri-government-line','var(--grad-green)'],['PMB','Non-Official Bills','ri-user-star-line','var(--grad-blue)']];
+/* Two categories only (30 Oct 2026). Joint Sitting Bills belong to Official or Non-Official and sit in the
+   Joint Sitting House; the internal type stays JS so each workflow keeps its own stages and fields. */
+const catOf=b=>b.type==='PMB'||(b.type==='JS'&&b.jsKind==='Non-Official Bill')?'PMB':'OB';
+const CAT_NAME={OB:'Official Bills',PMB:'Non-Official Bills'};
 function setDTab(t){state.dTab=t;state.drill=[];render();const c=document.querySelector('.dtabs');if(c)c.scrollIntoView({block:'start'})}
 
 /* ---- data-field helpers ---- */
@@ -2532,9 +2536,9 @@ const MILES={
  JS:[['Inclusion in Agenda','Issuance of OD by NA Secretariat','Issuance of OD by NA Secretariat'],['Committee on Bills','Date(s) of Meetings','Committee on Bills'],['Report Presented','Inclusion of Report on OD','Report Presented in Joint Sitting'],['Decision of Joint Sitting','Bill Passed','Bill Passed'],['Assent','MoPA Endorsement for Assent','MoPA Endorsement for Assent'],["President's Decision",'Assented by the President','Assented by the President'],['Notification','Notification by NA Secretariat','Notification by NA Secretariat']]
 };
 /* stage groups used for the Ministry/Division charts */
-const SGROUP={OB:['Pre-Introduction','In Agenda (OD)','Introduced','Standing Committee','Report Presented','Passed by House','Transmitted / Other House','Assent Pending','Assented / Notified'],
- PMB:['Pre-Admissibility','Admitted','In Agenda (OD)','Introduced','Standing Committee','Report Presented','Passed by House','Transmitted / Other House','Assent Pending','Assented / Notified'],
- JS:['Referred to Joint Sitting','In Agenda (OD)','Committee on Bills','Report Presented','Passed in Joint Sitting','Assent Pending','Assented / Notified']};
+const SGROUP={OB:['Pre-Introduction','In Agenda (OD)','Introduced','Standing Committee','Report Presented','Passed by House','Transmitted / Other House','Assent Proceed','Assented / Notified'],
+ PMB:['Pre-Admissibility','Admitted','In Agenda (OD)','Introduced','Standing Committee','Report Presented','Passed by House','Transmitted / Other House','Assent Proceed','Assented / Notified'],
+ JS:['Referred to Joint Sitting','In Agenda (OD)','Committee on Bills','Report Presented','Passed in Joint Sitting','Assent Proceed','Assented / Notified']};
 const SG_COL=['#94a3b8','#22c55e','#10b981','#14b8a6','#0891b2','#0ea5e9','#3b82f6','#6366f1','#8b5cf6','#059669'];
 const sgroupOf=b=>{const s=stageName(b);if(/Transmitted|Other House/.test(s))return 'Transmitted / Other House';if(/Assented|Notified/.test(s))return 'Assented / Notified';return s};
 const STG_COL=n=>Array.from({length:n},(_,i)=>['#059669','#10b981','#14b8a6','#0d9488','#0891b2','#0ea5e9','#2563eb','#3b82f6','#6366f1','#4f46e5','#7c3aed','#059669'][i%12]);
@@ -2544,6 +2548,22 @@ const H_SM=250,H_MD=270;
 const MILE_SHORT={'Issuance of OD':'OD issued','Issuance of OD by NA Secretariat':'OD issued','Referred to Standing Committee':'Referred to SC','Transmitted to Other House':'Transmitted','MoPA Endorsement for Assent':'MoPA endorsement','Assented by the President':'Assented','Notification Received by MoPA':'Notified','Notification by NA Secretariat':'Notified','Bill Admitted by Secretariat':'Admitted','Report Presented in Joint Sitting':'Report Presented'};
 const shortSt=s=>s.replace('Standing Committee','Standing Comm.').replace('Referred to Joint Sitting','Referred to JS').replace('Passed in Joint Sitting','Passed in JS').replace('Pre-Admissibility','Pre-Admiss.').replace('Pre-Introduction','Pre-Intro');
 const MOB=()=>window.innerWidth<760;
+/* Staging (30 Oct 2026): the eleven stages roll up into the four groups MoPA tracks, plus decided Bills */
+const STG4=[
+ {l:'Pending',m:s=>/Pre-Introduction|Pre-Admissibility|Admitted|In Agenda|Introduced|Referred to Joint Sitting/.test(s),c:'#94a3b8'},
+ {l:'Referred to Standing Committee',m:s=>/^Standing Committee$/.test(s),c:'#059669'},
+ {l:'Referred to JC',m:s=>/Committee on Bills/.test(s),c:'#0d9488'},
+ {l:'Ready for passage',m:s=>/^Report Presented$/.test(s),c:'#2563eb'},
+ {l:'Passed / assent',m:s=>/Passed|Transmitted|Other House|Assent Proceed|Assented|Notified/.test(s),c:'#6366f1'}];
+const stgOf=b=>{const s=stageName(b);return (STG4.find(g=>g.m(s))||STG4[0]).l};
+function cStaging(id,B){
+  const data=STG4.map(g=>B.filter(b=>stgOf(b)===g.l).length);
+  const horiz=MOB();
+  chart(id,{chart:{type:'bar',height:horiz?STG4.length*44+40:H_MD},series:[{name:'Bills',data}],
+    xaxis:{categories:STG4.map(g=>g.l),labels:{rotate:horiz?0:-22,trim:false,style:{fontSize:'11px'},maxHeight:70}},
+    plotOptions:{bar:{distributed:true,columnWidth:'52%',barHeight:'62%',horizontal:!!horiz}},colors:STG4.map(g=>g.c),
+    dataLabels:{enabled:true},legend:{show:false},drill:i=>drill('sgroup',STG4[i].l)});
+}
 function cStageWise(id,t,B){const st=STAGES[t],m=MOB();
   if(m)return chart(id,{chart:{type:'bar',height:st.length*30+50},series:[{name:'Bills',data:st.map(s=>B.filter(b=>stageName(b)===s).length)}],xaxis:{categories:st.map(shortSt)},yaxis:{labels:{maxWidth:140}},plotOptions:{bar:{horizontal:true,barHeight:'66%',distributed:true}},colors:STG_COL(st.length),dataLabels:{enabled:true},drill:i=>drill('stage',st[i])});
   chart(id,{chart:{type:'bar',height:H_MD},series:[{name:'Bills',data:st.map(s=>B.filter(b=>stageName(b)===s).length)}],xaxis:{categories:st.map(shortSt),labels:{rotate:-35,rotateAlways:true,trim:false}},plotOptions:{bar:{columnWidth:'56%',distributed:true}},colors:STG_COL(st.length),dataLabels:{enabled:true},grid:{padding:{top:-10}},drill:i=>drill('stage',st[i])})}
@@ -2594,7 +2614,7 @@ function cJSKind(id,B){donut(id,['Official Bill','Non-Official Bill'],[B.filter(
   Q[Q.length-1][1].drill=i=>drill('kind',['Official Bill','Non-Official Bill'][i])}
 function cCoB(id,B){const k=sIdx({type:'JS'},'Committee on Bills');
   donut(id,['Not yet referred','In Committee on Bills','Report presented','Withdrawn'],[B.filter(b=>b.si<k&&b.status!=='Withdrawn').length,B.filter(b=>b.si===k&&b.status==='Active').length,B.filter(b=>b.si>k).length,B.filter(b=>b.status==='Withdrawn').length],['#cbd5e1','#14b8a6','#059669','#f43f5e'],'Committee',H_SM-30)}
-function cTypeMini(id,ALL){donut(id,['Official','Non-Official','Joint Sitting'],['OB','PMB','JS'].map(t=>ALL.filter(b=>b.type===t).length),['#059669','#2563eb','#6366f1'],'All Bills',130);
+function cTypeMini(id,ALL){donut(id,['Official','Non-Official'],['OB','PMB'].map(t=>ALL.filter(b=>catOf(b)===t).length),['#059669','#2563eb','#6366f1'],'All Bills',130);
   const o=Q[Q.length-1][1];o.noLegend=true;o.plotOptions.pie.donut.size='64%';o.plotOptions.pie.donut.labels.show=false;o.drill=i=>setTimeout(()=>setDTab(['OB','PMB','JS'][i]),0)}
 
 /* ---------- tab KPIs ---------- */
@@ -2633,8 +2653,8 @@ function dashTools(total){return `<div class="dtools fade-up"><span class="tbill
   <div class="dt-act"><button class="btn btn-sm" onclick="printDash()"><i class="ri-printer-line"></i>Print</button><button class="btn btn-sm" onclick="downloadDash()"><i class="ri-download-2-line"></i>Download summary</button></div></div>`}
 function printDash(){document.body.classList.add('printing-dash');setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove('printing-dash'),400)},150)}
 function downloadDash(){const ALL=xF(perF(state.role==='min'?visibleBills():(state.role==='sec'||state.role==='pmo')?execBills():BILLS)),rows=[['Executive Dashboard Summary — Legislative Monitoring Dashboard'],['Data as of',TODAY.toLocaleString('en-GB')],['Period',PERIODS.find(p=>p[0]===state.per)[1]],[],['Workflow','Total Bills','In progress','At Standing Committee','In Other House','Overdue','Sent for assent','Assented']];
-  DTABS.forEach(([t,l])=>{const B=ALL.filter(b=>b.type===t),k=kpis(B);rows.push([l,B.length,activeOf(B).length,B.filter(b=>/Standing Committee|Committee on Bills/.test(stageName(b))).length,k.transit,k.overdue,k.assent,k.enacted])});
-  rows.push([],['House-wise','National Assembly','Senate','Joint Sitting']);DTABS.forEach(([t,l])=>rows.push([l,...['NA','Senate','Joint'].map(h=>ALL.filter(b=>b.type===t&&b.house===h).length)]));
+  DTABS.forEach(([t,l])=>{const B=ALL.filter(b=>catOf(b)===t),k=kpis(B);rows.push([l,B.length,activeOf(B).length,B.filter(b=>/Standing Committee|Committee on Bills/.test(stageName(b))).length,k.transit,k.overdue,k.assent,k.enacted])});
+  rows.push([],['House-wise','National Assembly','Senate','Joint Sitting']);DTABS.forEach(([t,l])=>rows.push([l,...['NA','Senate','Joint'].map(h=>ALL.filter(b=>catOf(b)===t&&b.house===h).length)]));
   rows.push([],['Ministry/Division-wise','Bills received','Pending responses','Overdue','Assented']);MINISTRIES.forEach(m=>{const L=ALL.filter(b=>b.ministry===m);rows.push([m,L.length,L.filter(responseDue).length,L.filter(b=>deadline(b)?.state==='overdue').length,L.filter(isDone).length])});
   download('Executive Dashboard Summary',rows);toast('Executive Dashboard Summary downloaded','ri-download-2-line')}
 /* open the Bills behind the current drill-through in Bill Management (BRD UC-05: drill down into individual Bills) */
@@ -2646,14 +2666,14 @@ const TAB_SOFT={OB:'#f4fdf9',PMB:'#f5f9ff',JS:'#f6f6ff'};
 const TAB_TINT={OB:'#c7f5e1',PMB:'#c9e3ff',JS:'#d7d9ff'};
 const TAB_ACC={OB:'#059669',PMB:'#2563eb',JS:'#4f46e5'};
 function dashTabsBar(ALL){
-  return `<div class="dtabs fade-up" role="tablist">${DTABS.map(([t,l])=>{const B=ALL.filter(b=>b.type===t),od=B.filter(b=>deadline(b)?.state==='overdue').length,en=B.filter(isDone).length,ac=activeOf(B).length,na=B.filter(b=>b.house==='NA').length,sen=B.filter(b=>b.house==='Senate').length;
+  return `<div class="dtabs fade-up" role="tablist">${DTABS.map(([t,l])=>{const B=ALL.filter(b=>catOf(b)===t),od=B.filter(b=>deadline(b)?.state==='overdue').length,en=B.filter(isDone).length,ac=activeOf(B).length,na=B.filter(b=>b.house==='NA').length,sen=B.filter(b=>b.house==='Senate').length;
     return `<button class="dtab ${state.dTab===t?'on':''}" style="--soft:${TAB_SOFT[t]};--tint:${TAB_TINT[t]};--acc:${TAB_ACC[t]}" role="tab" aria-selected="${state.dTab===t}" onclick="setDTab('${t}')"><span class="dt-top"><span class="dt-name">${l}</span><em>${B.length}</em></span><span class="dt-stats"><span><b>${na}</b>National Assembly</span><span><b>${sen}</b>Senate</span></span></button>`}).join('')}</div>`;
 }
 
 /* ---------- drill-through: click any bar / slice / cell to filter every chart ---------- */
 const AGE_BANDS=[['0–15 days',0,15],['16–30 days',16,30],['31–60 days',31,60],['61–90 days',61,90],['90+ days',91,99999]];
 const DRILL={stage:['Stage',(b,v)=>stageName(b)===v],sgroup:['Stage',(b,v)=>sgroupOf(b)===v],outcome:['Outcome',(b,v)=>outcome(b)===v],ministry:['Ministry/Division',(b,v)=>b.ministry===v],house:['House of Origin',(b,v)=>b.house===v],
-  age:['Ageing',(b,v)=>{const r=AGE_BANDS.find(x=>x[0]===v);return b.status==='Active'&&!isDone(b)&&ageing(b)>=r[1]&&ageing(b)<=r[2]}],a74:['Article 74',(b,v)=>(dfVal(b,'Pre-Admissibility / Advance Notice','Applicability of Article 74 (Ministry Stance)').yn||'Awaited')===v],
+  sgroup2:['Staging',(b,v)=>stgOf(b)===v],age:['Ageing',(b,v)=>{const r=AGE_BANDS.find(x=>x[0]===v);return b.status==='Active'&&!isDone(b)&&ageing(b)>=r[1]&&ageing(b)<=r[2]}],a74:['Article 74',(b,v)=>(dfVal(b,'Pre-Admissibility / Advance Notice','Applicability of Article 74 (Ministry Stance)').yn||'Awaited')===v],
   mover:['Member(s) In-charge',(b,v)=>b.member===v],kind:['Bill Type',(b,v)=>(b.jsKind||'Official Bill')===v],session:['Session',(b,v)=>billSessions(b).includes(v)],clock:['Deadline',(b,v)=>(deadline(b)?.state||'none')===v]};
 const OUT_LBL={Pending:'Pending decision',Passed:'Bill Passed',Deferred:'Bill Deferred',Withdrawn:'Bill Withdrawn',Assented:'Assented'};
 const CLOCK_LBL={ok:'Within limit',soon:'Reminder (10 days or less)',overdue:'Overdue'};
@@ -2672,21 +2692,21 @@ function dashPanel(t,B0,o={}){
   const name=DTABS.find(x=>x[0]===t)[1],B=applyDrill(B0);DRILL_IDS=B.map(b=>b.id);const db=drillBar(t,B.length);
   if(!B0.length)return `<div class="card">${empty(`No ${name} in this view`,o.emptyMsg||'Nothing has been recorded under this workflow yet.',DTABS.find(x=>x[0]===t)[2])}</div>`;
   if(!B.length)return db+`<div class="card">${empty('Nothing matches this drill-through','Remove a filter chip above to widen the view.','ri-filter-off-line')}</div>`;
-  cStageWise('dStage',t,B);cOutcome('dOut',B,t);cActivity('dAct',B);cSession('dSess',B);
+  cStaging('dStage',B);cOutcome('dOut',B,t);cActivity('dAct',B);cSession('dSess',B);
   const mins=o.ministries!==false;
   const stats=`<div class="grid g-stats s-compact">${tabStats(t,B).join('')}</div>`;
   const minCard=mins?box('dMin','Ministry/Division-wise','Top 10 Ministries / Divisions by number of Bills · click a bar to drill','span2'):box('dAct','Monthly trend','Bills registered, passed and assented in the last 12 months','span2');
   const actCard=mins?box('dAct','Monthly trend','Bills registered, passed and assented in the last 12 months','span2'):'';
   if(t==='JS'){cCoB('dCoB',B);cJSKind('dKind',B);cAssent('dAssent',t,B);
-    return `<div class="dpanel" data-tab="JS">${db}${sec('01','Bill stage-wise status','Where every Bill is now and how each one ended')}
+    return `<div class="dpanel" data-tab="JS">${db}${sec('01','Staging dashboard','Where every Bill is now, by staging group')}
     <div class="grid g-3 mt">${box('dStage','Stage-wise status','How many Bills are at each step. Click a bar to see them.','span2')}${box('dOut','House decision & outcome','Passed, deferred, withdrawn or assented')}</div>
     ${sec('02','Committee on Bills & assent','Joint Sitting Bills in Committee on Bills, by House and by the President’s decision')}<div class="grid g-11 mt">${box('dCoB','Committee on Bills','Referred to the Committee on Bills, report presented or withdrawn')}${box('dAssent','President’s decision','MoPA endorsement, President’s decision, notification and Gazette copy')}</div>
     <div class="grid g-11 mt">${box('dKind','Official vs Private Members’','Who moved the Bill')}${box('dAct','Monthly trend','Bills registered, passed and assented in the last 12 months')}</div></div>`;
   }
   cHouseProg('dHouse',t,B);const ext=cSC('dSC',t,B);cOtherHouse('dOH',t,B);
   const third=t==='PMB'?(cA74('dA74',B),box('dA74','Article 74 compliance','Ministry stance on Article 74, and Federal Government/Cabinet consent')):(cAssent('dAssent',t,B),box('dAssent','President’s decision','MoPA endorsement, President’s decision, notification and Gazette copy'));
-  return `<div class="dpanel" data-tab="${t}">${db}${sec('01','Bill stage-wise status','Where every Bill is now and how each one ended')}
-  <div class="grid g-3 mt">${box('dStage','Stage-wise status','How many Bills are at each step of the law-making process. Click a bar to see them.','span2')}${box('dOut','House decision & outcome','Pending, passed, deferred, withdrawn or assented')}</div>
+  return `<div class="dpanel" data-tab="${t}">${db}${sec('01','Staging dashboard','Where every Bill is now, by staging group')}
+  <div class="grid g-3 mt">${box('dStage','Bills by staging group','Pending, referred, ready for passage or passed. Click a bar to see the Bills.','span2')}${box('dOut','House decision & outcome','Pending, passed, deferred, withdrawn or assented')}</div>
   ${sec('02','Committee pendency & inter-House transmission','Standing Committee deadlines and transmission to the Other House')}<div class="grid g-3 mt">${box('dSC','Standing Committee pendency',`Is each bill within its time limit? 30 days (NA), 60 days (Senate)${ext?` · ${plural(ext,'extension')} granted`:''}`)}${box('dOH','Transmitted Bills','Is each Bill within its 90-day limit?')}${third}</div>
   
   ${sec('03','Session-wise progress','Bills in each session, and the decisions taken in it')}
@@ -2723,10 +2743,10 @@ function dashMoPA(){
   ${dashFilters()}
   ${dashTools(B.length)}
   ${dashTabsBar(B)}
-  ${dashPanel(t,B.filter(b=>b.type===t),{ministries:!state.x.ministry,emptyMsg:xOn()?NOMATCH:undefined})}`;
+  ${dashPanel(t,B.filter(b=>catOf(b)===t),{ministries:!state.x.ministry,emptyMsg:xOn()?NOMATCH:undefined})}`;
 }
 function dashExec(){
-  const x=state.x;x.view='ALL';const ALL=xF(perF(execBills())),r=ROLE(),t=state.dTab,B=ALL.filter(b=>b.type===t);
+  const x=state.x;x.view='ALL';const ALL=xF(perF(execBills())),r=ROLE(),t=state.dTab,B=ALL.filter(b=>catOf(b)===t);
   return dashFilters()+dashTools(ALL.length)+dashTabsBar(ALL)+dashPanel(t,B,{ministries:!x.ministry,emptyMsg:xOn()?NOMATCH:undefined});
 }
 function dashMinistry(){
@@ -2742,7 +2762,7 @@ function dashMinistry(){
   ${dashFilters()}
   ${dashTools(B.length)}
   ${dashTabsBar(B)}
-  ${dashPanel(t,B.filter(b=>b.type===t),{ministries:false,extra,emptyMsg:xOn()?NOMATCH:'MoPA has not shared any Bill of this type with your Ministry.'})}`;
+  ${dashPanel(t,B.filter(b=>catOf(b)===t),{ministries:false,extra,emptyMsg:xOn()?NOMATCH:'MoPA has not shared any Bill of this type with your Ministry.'})}`;
 }
 function dashLaw(){
   const B=xF(perF(BILLS)),pend=B.filter(b=>!b.lawCleared),done=B.length-pend.length,t=state.dTab;
@@ -2756,7 +2776,7 @@ function dashLaw(){
   ${dashFilters()}
   ${dashTools(B.length)}
   ${dashTabsBar(B)}
-  ${dashPanel(t,B.filter(b=>b.type===t),{extra,emptyMsg:xOn()?NOMATCH:undefined})}`;
+  ${dashPanel(t,B.filter(b=>catOf(b)===t),{extra,emptyMsg:xOn()?NOMATCH:undefined})}`;
 }
 
 const fieldLabel=(b,k)=>{const [si,fi]=k.split('.').map(Number);return DF[b.type][si]?.fields[fi]?.label||''};
@@ -3001,7 +3021,7 @@ function openUpdate(id){
    <label class="field"><span>House decision</span><select class="input" id="uSt">${['Active','Deferred','Withdrawn'].map(s=>`<option ${b.status===s?'selected':''} value="${s}">${s==='Active'?'No decision / proceeding':s}</option>`).join('')}</select></label>
    <label class="field"><span>Reference number</span><input class="input" id="uR" placeholder="e.g. NA/Leg/OD/412/2026"></label>
    <div class="drop span2" onclick="$('#uF').click()"><input type="file" hidden id="uF" onchange="fileChosen(this,'uFN')"><i class="ri-attachment-2"></i><b id="uFN">Attach the source document</b><span>Order of the Day, Committee report, Gazette copy… up to 20 MB</span></div>
-   ${b.type!=='JS'&&!b.skipOH&&b.si<sIdx(b,'Assent Pending')?`<label class="chk span2" style="margin-bottom:10px"><input type="checkbox" id="uSkip" onchange="if(this.checked)$('#uS').value=sIdx(byId('${b.id}'),'Assent Pending')"> This Bill does not go to the Other House — skip those steps</label>`:''}
+   ${b.type!=='JS'&&!b.skipOH&&b.si<sIdx(b,'Assent Proceed')?`<label class="chk span2" style="margin-bottom:10px"><input type="checkbox" id="uSkip" onchange="if(this.checked)$('#uS').value=sIdx(byId('${b.id}'),'Assent Proceed')"> This Bill does not go to the Other House — skip those steps</label>`:''}
    <label class="chk span2" style="margin-bottom:14px"><input type="checkbox" id="uNA" onchange="$('#uNAw').classList.toggle('hidden',!this.checked)"> Reference / document not available</label>
    <label class="field span2 hidden" id="uNAw"><span>Reason *</span><textarea class="input" id="uNR" placeholder="Why is there no reference or document?"></textarea></label>
   </div><p class="muted" style="font-size:13px">If a step was dispensed with, pick the stage the Bill has actually reached — skipped stages are recorded with the same date.</p><div class="errbox hidden" id="uE" style="margin-top:12px"></div></div>
@@ -3273,7 +3293,7 @@ function renderNav(){
     if(k==='deadlines')n=visibleBills().filter(b=>deadline(b)?.state==='overdue').length;
     if(k==='bills'&&state.role==='min')n=visibleBills().filter(responseDue).length;
     h+=`<div class="nav-item ${cur===k?'active':''}" onclick="go('${k}')" title="${NAV_ITEMS[k].l}"><i class="${it.i}"></i><span>${NAV_ITEMS[k].l}</span>${n?`<span class="nb">${n}</span>`:''}</div>`;
-    if(k==='bills'){const V=visibleBills();h+=`<div class="nav-sub">${[['OB','Official Bills'],['PMB','Non-Official Bills'],['JS','Joint Sitting']].map(([t,l])=>`<div class="nav-subi ${cur==='bills'&&state.page==='bills'&&state.tab===t?'on':''}" onclick="state.tab='${t}';state.pg=1;go._keep=true;go('bills')"><span class="dotc ${t}"></span><span>${l}</span><em>${V.filter(b=>b.type===t).length}</em></div>`).join('')}</div>`}
+    if(k==='bills'){const V=visibleBills();h+=`<div class="nav-sub">${[['OB','Official Bills'],['PMB','Non-Official Bills']].map(([t,l])=>`<div class="nav-subi ${cur==='bills'&&state.page==='bills'&&state.tab===t?'on':''}" onclick="state.tab='${t}';state.pg=1;go._keep=true;go('bills')"><span class="dotc ${t}"></span><span>${l}</span><em>${V.filter(b=>catOf(b)===t).length}</em></div>`).join('')}</div>`}
   });
   $('#nav').innerHTML=h;
 }
