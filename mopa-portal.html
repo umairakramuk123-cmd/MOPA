@@ -1060,6 +1060,15 @@ i[data-ic]>svg{width:1em;height:1em;fill:currentColor}
 .tbill{display:inline-flex;align-items:center;gap:9px;padding:6px 14px 6px 12px;border-radius:999px;background:linear-gradient(135deg,#ecfdf5,#eff6ff 60%,#f5f3ff);border:1px solid rgba(5,150,105,.2);font-size:13px;font-weight:600;color:var(--muted);white-space:nowrap;box-shadow:0 6px 16px -14px rgba(15,23,42,.45)}
 .tbill i{color:#059669;font-size:16px}
 .tbill b{font-size:19px;font-weight:800;color:var(--ink);letter-spacing:-.02em}
+.sec-alerts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:12px}
+.sa{border:1px solid var(--line);border-left:4px solid #059669;border-radius:14px;padding:12px 14px;background:#fff;cursor:pointer;transition:transform .2s ease,box-shadow .2s ease}
+.sa:hover{transform:translateY(-1px);box-shadow:0 10px 22px -14px rgba(15,23,42,.4)}
+.sa.blue{border-left-color:#2563eb}.sa.teal{border-left-color:#0d9488}.sa.amber{border-left-color:#d97706}.sa.green{border-left-color:#059669}
+.sa-h{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;font-size:13px;font-weight:700;color:var(--ink)}
+.sa-h b{font-size:22px;font-weight:800;letter-spacing:-.02em}
+.sa-b{margin-top:6px;font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:flex-start}
+@media (max-width:1100px){.sec-alerts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.sec-alerts{grid-template-columns:1fr}}
 .acc-t td.c,.acc-t th.c{text-align:center}
 .acc-t td,.acc-t th{white-space:nowrap}
 .acc-t td small{display:block;font-weight:500}
@@ -1674,6 +1683,13 @@ function sessionDoc(sid,slot,b){
   if(!SESSION_DOCS[k])SESSION_DOCS[k]={name:slot,ic:slot==='Gazette Notification'?'ri-government-line':'ri-calendar-check-line',bill:b.id,stage:b.type==='JS'?'In Agenda (OD)':'In Agenda (OD)',missing:(b.n+slot.length)%7===0,size:((b.n*29)%14+8)/10+' MB',date:new Date(TODAY-30*DAY+(b.n%9)*DAY),by:'NA Secretariat',session:sid,shared:true};
   return Object.assign({},SESSION_DOCS[k],{bill:b.id});
 }
+
+/* Guidelines (30 Oct 2026): the rules the dashboard is read against */
+const GUIDELINES=[
+ ['Rule of Senate','Senate Rules of Procedure — OD, introduction, Committee and passage in the Senate'],
+ ['Rule of NA','National Assembly Rules — OD, introduction, Committee and passage in the Assembly'],
+ ['Rule of Bill','Which House a Bill may originate in, and the 90-day transmission limit'],
+ ['Article 74','When the Ministry stance and Federal Government/Cabinet consent are required']];
 
 /* ---------------- Legal reference library (meeting 30 Oct 2026): the frameworks MoPA works to ---------------- */
 const LEGAL_REF=[
@@ -2297,6 +2313,8 @@ PAGES.documents=()=>{
   const grads=['var(--grad-green)','var(--grad-blue)','var(--grad-teal)','var(--grad-indigo)','var(--grad-cyan)','var(--grad-emb)','var(--grad-main)'];
   return `<div class="ph"><div><span class="eyebrow">Document repository</span><h1>Documents</h1><p>Each document has a fixed slot tied to its stage and is linked to the Bill ID. Files up to 20 MB.</p></div>${canUpload()?`<div class="ph-actions"><button class="btn btn-primary" onclick="openUpload()"><i class="ri-upload-cloud-2-line"></i>Upload document</button></div>`:''}</div>
   <div class="grid g-auto">${DOC_SLOTS.map(([n,,ic],i)=>{const x=D.filter(d=>d.name===n);return `<div class="card folder fade-up" style="--d:${i*50}ms;${state.docF===n?'box-shadow:0 0 0 2px #10b981':''}" onclick="state.docF=state.docF==='${n}'?'':'${n}';render()"><div class="fi" style="background:${grads[i]}"><i class="${ic}"></i></div><div><b>${n}</b><span>${plural(x.filter(d=>!d.missing).length,'file')}${x.some(d=>d.missing)?` · <span style="color:#be123c">${x.filter(d=>d.missing).length} missing</span>`:''}</span></div></div>`}).join('')}</div>
+  <div class="card flush mt fade-up"><div class="card-h"><div><h3>Guidelines</h3><p>The rules every stage and deadline on this dashboard is read against</p></div></div>
+    <div class="lr-grid" style="margin-top:12px">${GUIDELINES.map(([n,note])=>`<div class="lr-item"><div class="lr-ic" style="background:var(--grad-main)"><i class="ri-scales-line"></i></div><div><b>${esc(n)}</b><span>${esc(note)}</span></div></div>`).join('')}</div></div>
   <div class="card flush mt fade-up"><div class="card-h"><div><h3>Legal reference library</h3><p>The frameworks every Bill is checked against — one copy, shared by every role</p></div><span class="pill p-indigo"><i class="ri-scales-3-line"></i>${LEGAL_REF.length} references</span></div>
     <div class="lr-grid" style="margin-top:12px">${LEGAL_REF.map(([n,note,tag])=>`<div class="lr-item"><div class="lr-ic"><i class="ri-scales-3-line"></i></div><div><b>${esc(n)}</b><span>${esc(note)}</span></div><button class="icon-btn" title="Download" onclick="toast('Downloading ${esc(n)}','ri-download-2-line')"><i class="ri-download-2-line"></i></button></div>`).join('')}</div></div>
   <div class="grid g-21 mt">
@@ -2788,9 +2806,20 @@ function dashMoPA(){
   ${dashTabsBar(B)}
   ${dashPanel(t,B.filter(b=>catOf(b)===t),{ministries:!state.x.ministry,emptyMsg:xOn()?NOMATCH:undefined})}`;
 }
+/* Secretary dashboard alerts (30 Oct 2026): the four streams the Secretary watches */
+const SEC_ALERT_STREAMS=[
+ {l:'Notice for introduction',tone:'blue',m:b=>/In Agenda \(OD\)|Pre-Introduction|Pre-Admissibility|Admitted/.test(stageName(b))},
+ {l:'Committee report',tone:'teal',m:b=>/^Standing Committee$|Committee on Bills|^Report Presented$/.test(stageName(b))},
+ {l:'Consent to ministries / ministry consideration',tone:'amber',m:b=>b.type==='PMB'&&(!b.art74||b.consent==='Pending'||!b.stance)},
+ {l:'Bill passed',tone:'green',m:b=>/Passed|Transmitted|Other House|Assent Proceed|Assented|Notified/.test(stageName(b))}];
+function secAlertBoard(B){
+  const rows=SEC_ALERT_STREAMS.map(s=>{const L=B.filter(s.m);return {...s,n:L.length,latest:L.slice().sort((a,c)=>c.stageDate-a.stageDate)[0]}});
+  return `<div class="sec-alerts">${rows.map(r=>`<div class="sa ${r.tone}" onclick="setX('view','ALL');go('bills')"><div class="sa-h"><span>${esc(r.l)}</span><b>${r.n}</b></div><div class="sa-b">${r.latest?`<i class="ri-notification-3-line"></i> Latest: ${esc(r.latest.title.length>44?r.latest.title.slice(0,44)+'…':r.latest.title)}`:'<span class="muted">Nothing at this stage</span>'}</div></div>`).join('')}</div>`;
+}
 function dashExec(){
   const x=state.x;x.view='ALL';const ALL=xF(perF(execBills())),r=ROLE(),t=state.dTab,B=ALL.filter(b=>catOf(b)===t);
-  return dashFilters()+dashTools(ALL.length)+dashTabsBar(ALL)+dashPanel(t,B,{ministries:!x.ministry,emptyMsg:xOn()?NOMATCH:undefined});
+  const board=(state.role==='sec'||state.role==='pmo')?`<div class="card fade-up" style="margin-bottom:14px"><div class="card-h"><div><h3>Alerts for the Secretary</h3><p>Live counts at the four milestones you track · click one to see the Bills</p></div><span class="pill p-rose"><i class="ri-notification-3-line"></i>${SEC_ALERT_STREAMS.reduce((a,x)=>a+ALL.filter(x.m).length,0)} open</span></div>${secAlertBoard(ALL)}</div>`:'';
+  return board+dashFilters()+dashTools(ALL.length)+dashTabsBar(ALL)+dashPanel(t,B,{ministries:!x.ministry,emptyMsg:xOn()?NOMATCH:undefined});
 }
 function dashMinistry(){
   const B=xF(perF(visibleBills())),k=kpis(B),r=ROLE(),due=B.filter(responseDue),sent=B.reduce((a,b)=>a+b.responses.length,0),t=state.dTab;
@@ -3081,6 +3110,8 @@ function saveStage(id){
   if(si!==b.si){
     const skip=$('#uSkip')?.checked;if(skip){b.skipOH=true;AUDIT.unshift({ts:new Date(),user:ROLE().user,bill:id,field:'Other House',old:'Applies',nw:'Not applicable — skipped',reason:na?rs:'Source: '+src})}
     if(si>b.si){for(let k=b.si+1;k<=si;k++){const sk=b.skipOH&&/Transmitted|Other House/.test(st[k]);b.history.push({stage:st[k],date:new Date(d),user:ROLE().user,ref:sk?'Skipped — not applicable':src,skipped:sk})}}
+    /* Transmission needs an attachment (30 Oct 2026): saved, but flagged in Missing documents and raised to MoPA */
+    if(st[si]==='Transmitted'&&!PICKED){b.transmitNoDoc=true;pushAlert('milestone','Bill transmitted without the transmission notice attached',id)}
     else b.history=b.history.slice(0,si+1);
     b.si=si;b.stageDate=new Date(d);
     AUDIT.unshift({ts:new Date(),user:ROLE().user,bill:id,field:'Current stage',old,nw:st[si],reason:na?rs:'Source: '+src});
